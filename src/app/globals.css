@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@import "./design.css";
+
+/* Утилиты Tailwind поверх токенов design.css: bg-accent, text-ink-2, gap-md, text-xl, rounded-card, font-display…
+   Значения живут только в design.css (:root), здесь — ссылки на них. */
+@theme inline {
+  --color-*: initial;
+  --color-paper: var(--color-paper);
+  --color-paper-2: var(--color-paper-2);
+  --color-paper-3: var(--color-paper-3);
+  --color-card: var(--color-card);
+  --color-ink: var(--color-ink);
+  --color-ink-2: var(--color-ink-2);
+  --color-muted: var(--color-muted);
+  --color-rule: var(--color-rule);
+  --color-edge: var(--color-edge);
+  --color-accent: var(--color-accent);
+  --color-accent-deep: var(--color-accent-deep);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-signal: var(--color-signal);
+  --color-signal-deep: var(--color-signal-deep);
+  --color-signal-soft: var(--color-signal-soft);
+  --color-signal-ink: var(--color-signal-ink);
+  --color-mint: var(--color-mint);
+  --color-mint-deep: var(--color-mint-deep);
+  --color-mint-ink: var(--color-mint-ink);
+  --color-night: var(--color-night);
+  --color-night-2: var(--color-night-2);
+  --color-night-rule: var(--color-night-rule);
+  --color-night-ink: var(--color-night-ink);
+  --color-night-muted: var(--color-night-muted);
+  --color-scrim: var(--color-scrim);
+  --color-error: var(--color-error);
+  --color-success: var(--color-success);
+
+  --spacing-3xs: var(--space-3xs);
+  --spacing-2xs: var(--space-2xs);
+  --spacing-xs: var(--space-xs);
+  --spacing-sm: var(--space-sm);
+  --spacing-md: var(--space-md);
+  --spacing-lg: var(--space-lg);
+  --spacing-xl: var(--space-xl);
+  --spacing-2xl: var(--space-2xl);
+  --spacing-3xl: var(--space-3xl);
+  --spacing-4xl: var(--space-4xl);
+
+  --text-*: initial;
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-md: var(--text-md);
+  --text-body: var(--text-body);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-display-s: var(--text-display-s);
+  --text-display: var(--text-display);
+  --text-section: var(--text-section);
+  --text-title: var(--text-title);
+  --text-lead: var(--text-lead);
+  --text-figure: var(--text-figure);
+
+  --radius-card: var(--radius-card);
+  --radius-stock: var(--radius-stock);
+  --radius-input: var(--radius-input);
+  --radius-tag: var(--radius-tag);
+  --radius-pill: var(--radius-pill);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-outlier: var(--font-outlier);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+}
