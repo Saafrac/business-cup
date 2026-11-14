@@ -2,13 +2,15 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { Bar } from "@/components/shell";
-import { giftShort, goalUsd, partyUrls, type PartyInfo } from "@/lib/party";
+import { useI18n } from "@/lib/i18n";
+import { goalUsd, partyUrls, type PartyInfo } from "@/lib/party";
 import { usdShort, type PartyState } from "@/lib/party-state";
 import { useOrigin } from "@/lib/use-demo";
 import { useParty } from "@/lib/use-party";
 
 /** Экран для зала: QR на страницу гостя, сумма и лента растут от взносов жюри */
 export function DemoQr({ party, initial }: { party: PartyInfo; initial: PartyState }) {
+  const { t, giftShort } = useI18n();
   const { state, live } = useParty(party.id, initial, 1000);
   const origin = useOrigin();
   const url = `${origin}${partyUrls(party.id).guest}`;
@@ -29,7 +31,7 @@ export function DemoQr({ party, initial }: { party: PartyInfo; initial: PartySta
               fgColor="#07051A"
               bgColor="#FFFEFF"
               className="block h-auto w-[min(340px,70vw)]"
-              title={`QR code for ${url}`}
+              title={t("qr.qrTitle", { url })}
             />
           </div>
         </div>
@@ -39,25 +41,25 @@ export function DemoQr({ party, initial }: { party: PartyInfo; initial: PartySta
       <div className="flex min-w-0 flex-[1_1_0] flex-col gap-xl">
         <div className="flex flex-col gap-sm">
           <h1 className="text-[3.5rem] leading-[0.95] tracking-[-0.045em] md:text-[6rem]">
-            A {short} for {party.honoree}
+            {t("qr.title", { gift: short, name: party.honoree })}
           </h1>
-          <p className="text-xl font-bold text-signal md:text-2xl">Scan, RSVP, chip in. About 30 seconds.</p>
+          <p className="text-xl font-bold text-signal md:text-2xl">{t("qr.scan")}</p>
         </div>
         <div className="flex flex-col gap-md">
           <div className="flex items-baseline gap-lg">
             <span className="figure text-[5rem] md:text-[8.5rem]" role="status" aria-live="polite">
               {usdShort(state.raisedCents)}
             </span>
-            <span className="text-2xl font-extrabold text-night-muted md:text-3xl">of ${goal}</span>
+            <span className="text-2xl font-extrabold text-night-muted md:text-3xl">{t("qr.of", { goal })}</span>
           </div>
           <Bar
             ratio={state.raisedCents / party.goalCents}
-            label={`${usdShort(state.raisedCents)} of $${goal} raised`}
+            label={t("g.raisedAria", { raised: usdShort(state.raisedCents), goal })}
             style={{ height: 24, backgroundColor: "var(--color-night-rule)" }}
             fillStyle={{ backgroundColor: "var(--color-signal)" }}
           />
           <p className="text-xl font-extrabold md:text-2xl">
-            {state.contributors} of {state.invited} guests are in
+            {t("qr.in", { n: state.contributors, m: state.invited })}
           </p>
         </div>
         <div className="flex min-h-16 flex-wrap gap-sm">
@@ -71,11 +73,11 @@ export function DemoQr({ party, initial }: { party: PartyInfo; initial: PartySta
           )}
           {reached && (
             <span className="pop inline-flex items-center rounded-pill bg-signal px-lg py-sm text-lg font-extrabold text-signal-ink md:text-xl">
-              That’s the whole {short}. Thank you, everyone!
+              {t("qr.done", { gift: short })}
             </span>
           )}
         </div>
-        {!live && <p className="label text-night-muted!">Connecting…</p>}
+        {!live && <p className="label text-night-muted!">{t("qr.connecting")}</p>}
       </div>
     </div>
   );

@@ -100,38 +100,16 @@ export function inviteHeadline(p: Pick<PartyInfo, "occasion" | "honoree" | "age"
   return partyTitle(p);
 }
 
-function ordinal(n: number) {
-  const t = n % 100;
-  if (t >= 11 && t <= 13) return `${n}th`;
-  return `${n}${({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
-}
-
-/** Заголовок обложки приглашения: «You’re invited to Emma’s 7th birthday!» */
-export function inviteTitle(p: Pick<PartyInfo, "occasion" | "honoree" | "age">) {
-  const h = p.honoree;
-  switch (p.occasion) {
-    case "Birthday":
-      return p.age ? `You’re invited to ${h}’s ${ordinal(p.age)} birthday!` : `You’re invited to ${h}’s birthday!`;
-    case "Wedding":
-      return `You’re invited to ${h}’s wedding!`;
-    case "Baby shower":
-      return `You’re invited to ${h}’s baby shower!`;
-    case "Farewell":
-      return `Come say goodbye to ${h}!`;
-    default:
-      return `You’re invited to celebrate ${h}!`;
-  }
-}
-
 /** Ссылка «Add to calendar»: Google Calendar, событие на 2 часа */
-export function calendarUrl(p: Pick<PartyInfo, "occasion" | "honoree" | "age" | "date" | "time" | "place" | "placeNote">) {
+// text — название события на языке гостя
+export function calendarUrl(p: Pick<PartyInfo, "date" | "time" | "place" | "placeNote">, text: string) {
   const [h, m] = p.time.split(":").map(Number);
   const day = p.date.replaceAll("-", "");
   const end = Math.min(23, (h || 0) + 2);
   const stamp = (hh: number, mm: number) => `${day}T${pad(hh)}${pad(mm)}00`;
   const q = new URLSearchParams({
     action: "TEMPLATE",
-    text: partyTitle(p),
+    text,
     dates: `${stamp(h || 0, m || 0)}/${stamp(end, m || 0)}`,
     location: [p.place, p.placeNote].filter(Boolean).join(", "),
   });

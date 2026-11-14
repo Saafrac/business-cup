@@ -10,7 +10,7 @@ const lexend = Lexend({
 
 const manrope = Manrope({
   variable: "--font-manrope",
-  subsets: ["latin"],
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
   weight: ["400", "500", "600", "700", "800"],
 });
 
@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${lexend.variable} ${manrope.variable} ${silkscreen.variable} h-full`}>
+    <html lang="ru" className={`${lexend.variable} ${manrope.variable} ${silkscreen.variable} h-full`}>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

@@ -6,11 +6,13 @@ import { UploadSheet } from "@/components/album/upload-sheet";
 import { CameraIcon, ExternalIcon } from "@/components/icons";
 import { Note, PhoneColumn } from "@/components/shell";
 import { albumCover, albumHostLabel, type AlbumState } from "@/lib/album";
-import { dayLong, mmdd, partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
+import { LangSwitch, useI18n } from "@/lib/i18n";
+import { partyUrls, type PartyInfo } from "@/lib/party";
 import { useAlbum } from "@/lib/use-album";
 
 /** Вход в альбом по ссылке из чата или QR: обложка, «Добавить фото», «Смотреть», внешний альбом фотографа */
 export function AlbumEntry({ party, initial }: { party: PartyInfo; initial: AlbumState }) {
+  const { t, rich, title, lit, dayLong, md } = useI18n();
   const { album, addLocal } = useAlbum(party.id, initial);
   const [uploading, setUploading] = useState(false);
   const urls = partyUrls(party.id);
@@ -21,7 +23,10 @@ export function AlbumEntry({ party, initial }: { party: PartyInfo; initial: Albu
         <Link href={urls.guest} className="font-display text-lg font-semibold tracking-[-0.03em] text-ink no-underline hover:text-ink">
           chip in
         </Link>
-        <span className="text-sm font-bold text-ink-2">Photo album</span>
+        <span className="flex items-center gap-xs">
+          <span className="text-sm font-bold text-ink-2">{t("al.title")}</span>
+          <LangSwitch />
+        </span>
       </div>
 
       <div className="px-md">
@@ -29,13 +34,15 @@ export function AlbumEntry({ party, initial }: { party: PartyInfo; initial: Albu
           {/* eslint-disable-next-line @next/next/no-img-element -- обложка: своё фото или иллюстрация из public */}
           <img src={albumCover(party.id, album)} alt="" className="block h-[190px] w-full rounded-stock object-cover" />
           <div className="flex flex-col gap-2xs px-xs">
-            <h1 className="text-3xl">{partyTitle(party)}</h1>
+            <h1 className="text-3xl">{title(party)}</h1>
             <p className="font-bold text-ink-2">
-              {dayLong(party.date)} {mmdd(party.date)}, {party.place}
+              {dayLong(party.date)} {md(party.date)}, {lit(party.place)}
             </p>
             <p className="pt-xs font-extrabold">
-              <span className="figure text-xl text-accent">{album.count}</span> photos from{" "}
-              <span className="figure text-xl text-accent">{album.guests}</span> guests
+              {rich("al.count", {
+                count: <span className="figure text-xl text-accent">{album.count}</span>,
+                guests: <span className="figure text-xl text-accent">{album.guests}</span>,
+              })}
             </p>
           </div>
         </Note>
@@ -53,8 +60,8 @@ export function AlbumEntry({ party, initial }: { party: PartyInfo; initial: Albu
               <ExternalIcon size={22} />
             </span>
             <span className="flex flex-col">
-              <span className="font-extrabold">The photographer’s album</span>
-              <span className="text-sm text-ink-2">Opens on {albumHostLabel(album.albumUrl)}</span>
+              <span className="font-extrabold">{t("al.photographer")}</span>
+              <span className="text-sm text-ink-2">{t("al.opensOn", { host: albumHostLabel(album.albumUrl) })}</span>
             </span>
           </a>
         </div>
@@ -63,12 +70,12 @@ export function AlbumEntry({ party, initial }: { party: PartyInfo; initial: Albu
       <div className="mt-auto flex flex-col gap-sm p-md pt-xl">
         <button type="button" onClick={() => setUploading(true)} className="btn btn--primary btn--block min-h-14 text-lg">
           <CameraIcon size={22} />
-          Add photos
+          {t("al.add")}
         </button>
         <Link className="btn btn--block" href={urls.albumPhotos}>
-          See album
+          {t("al.see")}
         </Link>
-        <p className="label pt-xs text-center">Anyone with the event link can open this album.</p>
+        <p className="label pt-xs text-center">{t("al.anyone")}</p>
       </div>
 
       {uploading && <UploadSheet partyId={party.id} onClose={() => setUploading(false)} onUploaded={addLocal} />}

@@ -8,7 +8,7 @@ import { partyUrls, type PartyInfo } from "@/lib/party";
 import type { PartyState } from "@/lib/party-state";
 import { useParty } from "@/lib/use-party";
 
-/** Страница гостя: приглашение в выбранном дизайне → короткие шаги ответа */
+/** Страница гостя: приглашение в выбранном дизайне → короткие шаги ответа. Переключатель языка — в шапке приглашения. */
 export function GuestPage({ party, initial }: { party: PartyInfo; initial: PartyState }) {
   const { state, accept } = useParty(party.id, initial);
   const [flow, setFlow] = useState<{ start: Answer; key: number } | null>(null);

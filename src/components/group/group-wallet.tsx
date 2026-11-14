@@ -3,45 +3,55 @@
 import { useState } from "react";
 import { SparkIcon } from "@/components/icons";
 import { AppHeader, Key, NameTag, Note, SWATCH, type TagKind } from "@/components/shell";
-import { GROUP, GUESTS, TILT } from "@/lib/demo";
+import { GUESTS, TILT } from "@/lib/demo";
+import { useI18n } from "@/lib/i18n";
+import type { MessageKey } from "@/lib/i18n/dict";
 
 const EXTERNAL = new Set(["Olivia", "Isabella", "Harper"]);
 const NOT_YET = new Set(["Noah", "Ethan", "Wyatt"]);
 
-const SAMPLE_MESSAGE =
-  "Hi families! Our spring museum trip is on 03/20. The museum asks $12 per student, please send by 03/06. Thank you! Mrs. Carter";
-
-const TABS = ["Teacher gift", "Field trip bus", "Supplies"];
+const TABS = ["gw.tab1", "gw.tab2", "gw.tab3"] as const;
 
 const NUDGES = [
-  { to: "Tom, Noah’s dad", text: "Hi Tom! The gift for Mrs. Carter closes Friday. $15 if you’d like to join, no worries if not.", tilt: -1 },
-  { to: "Sam, Ethan’s mom", text: "Hi Sam, we’re putting together a thank-you for Mrs. Carter. Totally optional, $15, link below.", tilt: 0.8 },
-  { to: "Lee, Wyatt’s mom", text: "Hi Lee! Friday is the last day for the Mrs. Carter gift. Join if it works for you.", tilt: -0.5 },
-];
+  { id: "n1", tilt: -1 },
+  { id: "n2", tilt: 0.8 },
+  { id: "n3", tilt: -0.5 },
+] as const;
 
-type Draft = { title: string; perPerson: number; due: string; expected: number };
+type Draft = { titleKey: MessageKey; perPerson: number; due: { m: number; d: number } | null; expected: number };
 
 /** Черновик сбора для демо: тот же формат, что вернёт AI Collection Builder (запасной ответ на таймаут) */
 function draftFrom(text: string): Draft {
   const money = text.match(/\$(\d+(?:\.\d{1,2})?)/);
-  const dates = [...text.matchAll(/(\d{2})\/(\d{2})/g)];
-  const due = dates.length ? dates[dates.length - 1] : null;
+  const dates = [...text.matchAll(/(\d{2})([/.])(\d{2})/g)];
+  const last = dates.length ? dates[dates.length - 1] : null;
+  // «03/06» — месяц/день (США), «06.03» — день.месяц
+  const due = last ? (last[2] === "." ? { d: Number(last[1]), m: Number(last[3]) } : { m: Number(last[1]), d: Number(last[3]) }) : null;
   const per = money ? Number(money[1]) : 12;
   const lower = text.toLowerCase();
-  const title = lower.includes("museum")
-    ? "Spring museum trip"
-    : lower.includes("teacher") || lower.includes("thank")
-      ? "Teacher thank-you"
-      : lower.includes("supplies")
-        ? "Supplies"
-        : "Group collection";
-  return { title, perPerson: per, due: due ? `${due[1]}/${due[2]}/2027` : "—", expected: per * GUESTS.length };
+  const has = (...words: string[]) => words.some((w) => lower.includes(w));
+  const titleKey: MessageKey = has("museum", "музей", "мұражай")
+    ? "gw.d.museum"
+    : has("teacher", "thank", "учител", "благодар", "мұғалім", "алғыс")
+      ? "gw.d.teacher"
+      : has("supplies", "канцт", "кеңсе")
+        ? "gw.d.supplies"
+        : "gw.d.group";
+  return { titleKey, perPerson: per, due, expected: per * GUESTS.length };
 }
 
 export function GroupWallet() {
+  const { t, locale } = useI18n();
   const [tab, setTab] = useState(0);
-  const [paste, setPaste] = useState(SAMPLE_MESSAGE);
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(SAMPLE_MESSAGE));
+  const [typed, setTyped] = useState<string | null>(null);
+  const paste = typed ?? t("gw.sample");
+  const [built, setBuilt] = useState<Draft | null>(null);
+  const draft = built ?? draftFrom(t("gw.sample"));
+  const dueText = draft.due
+    ? locale === "en"
+      ? `${String(draft.due.m).padStart(2, "0")}/${String(draft.due.d).padStart(2, "0")}/2027`
+      : `${String(draft.due.d).padStart(2, "0")}.${String(draft.due.m).padStart(2, "0")}.2027`
+    : "—";
   const [thinking, setThinking] = useState(false);
   const [published, setPublished] = useState(false);
   const [sentAll, setSentAll] = useState(false);
@@ -50,36 +60,36 @@ export function GroupWallet() {
     setThinking(true);
     setPublished(false);
     setTimeout(() => {
-      setDraft(draftFrom(paste));
+      setBuilt(draftFrom(paste));
       setThinking(false);
     }, 900);
   };
 
   return (
     <div className="paper min-h-dvh w-full bg-paper text-ink">
-      <AppHeader active="group" avatar="J" avatarLabel="Signed in as Julia" avatarClass="bg-mint text-mint-ink" />
+      <AppHeader active="group" avatar="J" avatarLabel={t("sh.signedJulia")} avatarClass="bg-mint text-mint-ink" />
 
       <div className="wrap flex flex-col gap-xl pt-xl pb-3xl">
         <div className="flex flex-wrap items-end justify-between gap-lg">
           <div className="flex flex-col gap-xs">
-            <h1 className="text-display-s">{GROUP.name}</h1>
-            <p className="text-ink-2">25 families, school year 2026 to 2027</p>
+            <h1 className="text-display-s">{t("gw.name")}</h1>
+            <p className="text-ink-2">{t("gw.sub")}</p>
           </div>
-          <div role="tablist" aria-label="Collections" className="flex flex-wrap gap-xs">
-            {TABS.map((t, i) => (
+          <div role="tablist" aria-label={t("gw.tabs")} className="flex flex-wrap gap-xs">
+            {TABS.map((tk, i) => (
               <button
-                key={t}
+                key={tk}
                 role="tab"
                 aria-selected={tab === i}
                 type="button"
                 onClick={() => setTab(i)}
                 className="choice px-md"
               >
-                {t}
+                {t(tk)}
               </button>
             ))}
             {published && (
-              <span className="pop tag min-h-[52px] bg-signal px-md font-extrabold">{draft.title}, new</span>
+              <span className="pop tag min-h-[52px] bg-signal px-md font-extrabold">{t("gw.new", { title: t(draft.titleKey) })}</span>
             )}
           </div>
         </div>
@@ -90,53 +100,53 @@ export function GroupWallet() {
               <div className="flex flex-wrap items-end justify-between gap-md border-b-2 border-ink pb-md">
                 <div className="flex flex-col gap-2xs">
                   <h2 id="tg" className="text-2xl">
-                    Teacher appreciation gift
+                    {t("gw.tgH")}
                   </h2>
-                  <p className="text-ink-2">$15 each, due Friday 12/12</p>
+                  <p className="text-ink-2">{t("gw.tgS")}</p>
                 </div>
                 <div className="flex items-baseline gap-sm">
                   <span className="figure text-3xl text-accent">22/25</span>
-                  <span className="font-extrabold">paid, $330 of $375</span>
+                  <span className="font-extrabold">{t("gw.tgPaid")}</span>
                 </div>
               </div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-sm sm:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]">
                 {GUESTS.map((n, i) => {
                   const [kind, label]: [TagKind, string] = NOT_YET.has(n)
-                    ? ["open", "Not yet"]
+                    ? ["open", t("gw.notYet")]
                     : EXTERNAL.has(n)
-                      ? ["venmo", "Venmo, $15"]
-                      : ["paid", "Paid, $15"];
+                      ? ["venmo", t("gw.venmo")]
+                      : ["paid", t("gw.paid")];
                   return <NameTag key={n} name={n} state={label} kind={kind} tilt={TILT[i % TILT.length]} />;
                 })}
               </div>
               <div className="flex flex-wrap gap-lg">
-                <Key swatch={SWATCH.paid}>Paid here, 19</Key>
-                <Key swatch={SWATCH.soft}>Paid by Venmo, 3</Key>
-                <Key swatch={SWATCH.open}>Not yet, 3</Key>
+                <Key swatch={SWATCH.paid}>{t("gw.k1")}</Key>
+                <Key swatch={SWATCH.soft}>{t("gw.k2")}</Key>
+                <Key swatch={SWATCH.open}>{t("gw.k3")}</Key>
               </div>
             </section>
 
             <section aria-labelledby="rm" className="flex flex-col gap-md">
               <div className="flex flex-wrap items-baseline justify-between gap-md">
                 <h2 id="rm" className="text-2xl">
-                  Reminders for the last three
+                  {t("gw.rmH")}
                 </h2>
-                <span className="label">Drafted by AI. Read before sending.</span>
+                <span className="label">{t("gw.rmS")}</span>
               </div>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-md">
                 {NUDGES.map((m) => (
-                  <Note key={m.to} bg="var(--color-paper-2)" tilt={m.tilt} className="p-lg">
-                    <span className="font-extrabold">To {m.to}</span>
-                    <p className="pt-xs leading-normal">{m.text}</p>
+                  <Note key={m.id} bg="var(--color-paper-2)" tilt={m.tilt} className="p-lg">
+                    <span className="font-extrabold">{t("gw.to", { name: t(`gw.${m.id}.to` as MessageKey) })}</span>
+                    <p className="pt-xs leading-normal">{t(`gw.${m.id}.text` as MessageKey)}</p>
                   </Note>
                 ))}
               </div>
               <div className="flex flex-wrap gap-sm">
                 <button type="button" disabled={sentAll} onClick={() => setSentAll(true)} className="btn btn--primary">
-                  {sentAll ? "Sent to all three" : "Send all three"}
+                  {sentAll ? t("gw.sentAll") : t("gw.sendAll")}
                 </button>
                 <button type="button" className="btn">
-                  Edit
+                  {t("gw.edit")}
                 </button>
               </div>
             </section>
@@ -148,18 +158,18 @@ export function GroupWallet() {
               className="paper torn on-dark flex flex-col gap-md bg-night px-lg py-xl text-night-ink"
             >
               <h2 id="nc" className="text-2xl">
-                New collection from a message
+                {t("gw.ncH")}
               </h2>
               <div className="field">
                 <label htmlFor="paste" className="text-night-muted!">
-                  Paste an email or a chat message
+                  {t("gw.pasteL")}
                 </label>
                 <textarea
                   id="paste"
                   className="input"
                   rows={5}
                   value={paste}
-                  onChange={(e) => setPaste(e.target.value)}
+                  onChange={(e) => setTyped(e.target.value)}
                   style={{
                     backgroundColor: "var(--color-night-2)",
                     color: "var(--color-night-ink)",
@@ -169,60 +179,60 @@ export function GroupWallet() {
               </div>
               <button type="button" onClick={build} disabled={thinking || !paste.trim()} className="btn btn--small self-start">
                 <SparkIcon size={16} className="text-signal" />
-                {thinking ? "Reading the message…" : "Draft it with AI"}
+                {thinking ? t("gw.reading") : t("gw.draftBtn")}
               </button>
               <div
                 aria-busy={thinking}
                 className={`flex flex-col gap-sm border-t-[1.5px] border-dashed border-night-rule pt-md transition-opacity ${thinking ? "opacity-40" : ""}`}
               >
-                <h3 className="text-xl">{draft.title}</h3>
-                <p className="label text-night-muted!">AI’s draft. Check it before you publish.</p>
+                <h3 className="text-xl">{t(draft.titleKey)}</h3>
+                <p className="label text-night-muted!">{t("gw.draftNote")}</p>
                 <div className="flex flex-wrap gap-xs">
-                  {[`$${draft.perPerson} each`, `due ${draft.due}`, `$${draft.expected} expected`].map((t) => (
-                    <span key={t} className="tag bg-night-rule text-night-ink">
-                      {t}
+                  {[t("gw.each", { n: draft.perPerson }), t("gw.due", { d: dueText }), t("gw.expected", { n: draft.expected })].map((tag) => (
+                    <span key={tag} className="tag bg-night-rule text-night-ink">
+                      {tag}
                     </span>
                   ))}
                 </div>
               </div>
               <div className="flex flex-wrap gap-sm">
                 <button type="button" onClick={() => setPublished(true)} disabled={thinking} className="btn btn--signal">
-                  {published ? "Published, link copied" : "Publish and share"}
+                  {published ? t("gw.published") : t("gw.publish")}
                 </button>
                 <button type="button" onClick={() => document.getElementById("paste")?.focus()} className="btn">
-                  Edit draft
+                  {t("gw.editDraft")}
                 </button>
               </div>
             </section>
 
             <section aria-labelledby="rp" className="flex flex-col gap-sm">
               <h2 id="rp" className="text-xl">
-                Field trip bus, closed
+                {t("gw.busH")}
               </h2>
-              <table aria-label="Field trip bus report" className="border-collapse text-md">
+              <table aria-label={t("gw.busAria")} className="border-collapse text-md">
                 <tbody>
                   <tr className="border-t-2 border-ink">
                     <th scope="row" className="py-sm text-left font-medium text-ink-2">
-                      Came in
+                      {t("gw.came")}
                     </th>
                     <td className="num text-right font-extrabold">$250.00</td>
                   </tr>
                   <tr className="border-t border-edge">
                     <th scope="row" className="py-sm text-left font-medium text-ink-2">
-                      Paid to the bus company
+                      {t("gw.paidBus")}
                     </th>
                     <td className="num text-right font-extrabold">$235.00</td>
                   </tr>
                   <tr className="border-y border-edge">
                     <th scope="row" className="py-sm text-left font-extrabold">
-                      Left in the group wallet
+                      {t("gw.leftIn")}
                     </th>
                     <td className="num text-right font-display text-xl font-semibold text-accent">$15.00</td>
                   </tr>
                 </tbody>
               </table>
               <a href="#csv" className="flex min-h-11 items-center font-extrabold">
-                Download the report as CSV
+                {t("gw.csv")}
               </a>
             </section>
           </aside>

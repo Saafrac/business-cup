@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { MailIcon } from "@/components/icons";
 import { Note } from "@/components/shell";
+import { useT } from "@/lib/i18n";
 
 export function LoginForm() {
+  const t = useT();
   const [email, setEmail] = useState("sarah@example.com");
   const [sent, setSent] = useState(false);
 
@@ -15,20 +17,20 @@ export function LoginForm() {
         {sent ? (
           <>
             <div className="flex flex-col gap-sm">
-              <h1 className="text-3xl">Check your inbox</h1>
+              <h1 className="text-3xl">{t("lg.checkTitle")}</h1>
               <p className="text-ink-2">
-                We sent a sign-in link to <strong className="text-ink">{email}</strong>. It works for 15 minutes.
+                {t("lg.sentA")} <strong className="text-ink">{email}</strong>. {t("lg.sentB")}
               </p>
             </div>
             <Link className="btn btn--primary btn--block" href="/parties">
-              Open my events
+              {t("lg.open")}
             </Link>
             <button
               type="button"
               onClick={() => setSent(false)}
               className="min-h-11 self-center border-0 bg-transparent font-extrabold text-accent-deep"
             >
-              Use a different email
+              {t("lg.other")}
             </button>
           </>
         ) : (
@@ -40,11 +42,11 @@ export function LoginForm() {
             }}
           >
             <div className="flex flex-col gap-sm">
-              <h1 className="text-3xl">Log in</h1>
-              <p className="text-ink-2">For organizers and room parents. Guests never need an account.</p>
+              <h1 className="text-3xl">{t("lg.title")}</h1>
+              <p className="text-ink-2">{t("lg.lead")}</p>
             </div>
             <div className="field">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t("lg.email")}</label>
               <input
                 id="email"
                 className="input"
@@ -57,7 +59,7 @@ export function LoginForm() {
             </div>
             <button type="submit" className="btn btn--primary btn--block">
               <MailIcon size={18} />
-              Email me a magic link
+              {t("lg.send")}
             </button>
           </form>
         )}

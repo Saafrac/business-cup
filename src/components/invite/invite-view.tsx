@@ -4,18 +4,9 @@ import Link from "next/link";
 import { useSyncExternalStore, type CSSProperties } from "react";
 import { BikeIcon, CameraIcon, GiftIcon, PaletteIcon, TelescopeIcon } from "@/components/icons";
 import { Bar, cn } from "@/components/shell";
+import { LangSwitch, useI18n } from "@/lib/i18n";
 import { coverSrc, type ThemeId } from "@/lib/invite-themes";
-import {
-  calendarUrl,
-  dayLong,
-  directionsUrl,
-  giftShort,
-  goalUsd,
-  inviteTitle,
-  mmdd,
-  time12,
-  type PartyInfo,
-} from "@/lib/party";
+import { calendarUrl, directionsUrl, goalUsd, type PartyInfo } from "@/lib/party";
 import { usdShort } from "@/lib/party-state";
 
 // Приглашение гостя (макет «G1 · Invite»): обложка темы, обратный отсчёт, когда и где, подарок, RSVP, альбом.
@@ -47,8 +38,8 @@ export function confettiStyle(i: number, left: number, top: number, delayStep = 
 }
 
 export function GiftArt({ gift, size = 40 }: { gift: string; size?: number }) {
-  const g = giftShort(gift);
-  const Icon = g === "bike" ? BikeIcon : g === "telescope" ? TelescopeIcon : g === "art set" ? PaletteIcon : GiftIcon;
+  const g = gift.toLowerCase();
+  const Icon = g.includes("bike") ? BikeIcon : g.includes("telescope") ? TelescopeIcon : g.includes("art set") ? PaletteIcon : GiftIcon;
   return <Icon size={size} strokeWidth={1.6} />;
 }
 
@@ -68,6 +59,7 @@ const useNowMinute = () =>
   );
 
 function Countdown({ date, time }: { date: string; time: string }) {
+  const { t } = useI18n();
   const now = useNowMinute();
   const at = new Date(`${date}T${time || "00:00"}:00`).getTime();
   if (now === null || Number.isNaN(at) || at <= now) return null;
@@ -75,16 +67,16 @@ function Countdown({ date, time }: { date: string; time: string }) {
   const days = Math.floor(hoursLeft / 24);
   const hours = hoursLeft % 24;
   return (
-    <section aria-label="Countdown" className="invite-block flex-row items-baseline justify-center gap-lg py-md">
+    <section aria-label={t("inv.countdown")} className="invite-block flex-row items-baseline justify-center gap-lg py-md">
       {days > 0 && (
         <p className="font-extrabold whitespace-nowrap">
-          <span className="figure text-3xl">{days}</span> {days === 1 ? "day" : "days"}
+          <span className="figure text-3xl">{days}</span> {t("inv.days", { n: days })}
         </p>
       )}
       <p className="font-extrabold whitespace-nowrap">
-        <span className="figure text-3xl">{hours}</span> {hours === 1 ? "hour" : "hours"}
+        <span className="figure text-3xl">{hours}</span> {t("inv.hours", { n: hours })}
       </p>
-      <p className="font-extrabold whitespace-nowrap text-ink-2">to go</p>
+      <p className="font-extrabold whitespace-nowrap text-ink-2">{t("inv.toGo")}</p>
     </section>
   );
 }
@@ -125,17 +117,22 @@ export function InviteView({
   onAnswer?: (a: Answer) => void;
   className?: string;
 }) {
+  const { t, lit, inviteTitle, title, dayLong, md, time } = useI18n();
   const goal = goalUsd(party);
   const preview = !onAnswer;
+  const skip = preview ? -1 : undefined;
   const answer = (a: Answer) => () => onAnswer?.(a);
 
   return (
     <div data-invite-theme={party.theme} className={cn("invite-page flex flex-col text-ink", className)}>
       <header className="invite-cover paper torn-bottom relative flex flex-col gap-md overflow-hidden px-md pt-md pb-2xl">
-        {SPOTS.map(([l, t], i) => (
-          <span key={i} aria-hidden="true" className="pixel confetti" style={confettiStyle(i, l, t)} />
+        {SPOTS.map(([l, top], i) => (
+          <span key={i} aria-hidden="true" className="pixel confetti" style={confettiStyle(i, l, top)} />
         ))}
-        <span className="relative font-display text-md font-semibold tracking-[-0.03em]">chip in</span>
+        <div className="relative flex items-center justify-between gap-xs">
+          <span className="font-display text-md font-semibold tracking-[-0.03em]">chip in</span>
+          {!preview && <LangSwitch />}
+        </div>
         {/* eslint-disable-next-line @next/next/no-img-element -- SVG обложки темы из public, оптимизация не нужна */}
         <img src={coverSrc(party.theme)} alt="" className="relative block h-[240px] w-full object-contain" />
         <h1 className="relative text-[2.5rem] leading-[1.02]">{inviteTitle(party)}</h1>
@@ -146,17 +143,17 @@ export function InviteView({
 
         <section aria-labelledby="when" className="invite-block">
           <h2 id="when" className="visually-hidden">
-            When and where
+            {t("inv.whenWhere")}
           </h2>
           <div className="flex items-center gap-md">
             <span className="invite-icon">
               <CalendarGlyph />
             </span>
             <div className="flex flex-col">
-              <time dateTime={`${party.date}T${party.time}`} className="font-display text-xl font-semibold tracking-[-0.02em]">
-                {dayLong(party.date)}, {mmdd(party.date)}
+              <time dateTime={`${party.date}T${party.time}`} className="font-display text-xl font-semibold tracking-[-0.02em] first-letter:uppercase">
+                {dayLong(party.date)}, {md(party.date)}
               </time>
-              <span className="font-bold text-ink-2">{time12(party.time)}</span>
+              <span className="font-bold text-ink-2">{time(party.time)}</span>
             </div>
           </div>
           <div className="flex items-center gap-md">
@@ -164,16 +161,16 @@ export function InviteView({
               <PinGlyph />
             </span>
             <div className="flex min-w-0 flex-col">
-              <span className="font-display text-xl font-semibold tracking-[-0.02em] break-words">{party.place || "The place"}</span>
-              {party.placeNote && <span className="font-bold text-ink-2">{party.placeNote}</span>}
+              <span className="font-display text-xl font-semibold tracking-[-0.02em] break-words">{party.place ? lit(party.place) : t("inv.placeTbd")}</span>
+              {party.placeNote && <span className="font-bold text-ink-2">{lit(party.placeNote)}</span>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-xs">
-            <a className="btn px-sm" href={calendarUrl(party)} target="_blank" rel="noopener noreferrer" tabIndex={preview ? -1 : undefined}>
-              Add to calendar
+            <a className="btn px-sm" href={calendarUrl(party, title(party))} target="_blank" rel="noopener noreferrer" tabIndex={skip}>
+              {t("inv.calendar")}
             </a>
-            <a className="btn px-sm" href={directionsUrl(party.place)} target="_blank" rel="noopener noreferrer" tabIndex={preview ? -1 : undefined}>
-              Directions
+            <a className="btn px-sm" href={directionsUrl(party.place)} target="_blank" rel="noopener noreferrer" tabIndex={skip}>
+              {t("inv.directions")}
             </a>
           </div>
         </section>
@@ -185,35 +182,33 @@ export function InviteView({
             </span>
             <div className="flex min-w-0 flex-col">
               <h2 id="gift" className="text-xl">
-                The gift: {party.gift}
+                {t("inv.giftH", { gift: lit(party.gift) })}
               </h2>
-              <p className="text-sm text-ink-2">One gift from everyone, chipping in is optional</p>
+              <p className="text-sm text-ink-2">{t("inv.giftSub")}</p>
             </div>
           </div>
-          <Bar ratio={raisedCents / party.goalCents} label={`${usdShort(raisedCents)} of $${goal} raised`} />
-          <p className="font-extrabold whitespace-nowrap">
-            <span className="num text-accent">{usdShort(raisedCents)}</span> of ${goal}, {contributors} of {invited} guests chipped in
+          <Bar ratio={raisedCents / party.goalCents} label={t("g.raisedAria", { raised: usdShort(raisedCents), goal })} />
+          <p className="font-extrabold">
+            <span className="num text-accent">{usdShort(raisedCents)}</span> {t("inv.progress", { goal, n: contributors, m: invited })}
           </p>
-          <button type="button" className="btn btn--block" onClick={answer("chip")} disabled={preview} tabIndex={preview ? -1 : undefined}>
-            Chip in
+          <button type="button" className="btn btn--block" onClick={answer("chip")} disabled={preview} tabIndex={skip}>
+            {t("inv.chip")}
           </button>
         </section>
 
         <section aria-labelledby="rsvp" className="invite-block bg-paper-2">
           <h2 id="rsvp" className="text-2xl">
-            Can you come?
+            {t("g.rsvpH")}
           </h2>
           <div className="grid grid-cols-2 gap-sm">
-            <button type="button" className="btn btn--primary min-h-14 px-sm" onClick={answer("yes")} disabled={preview} tabIndex={preview ? -1 : undefined}>
-              We’ll be there!
+            <button type="button" className="btn btn--primary min-h-14 px-sm whitespace-normal" onClick={answer("yes")} disabled={preview} tabIndex={skip}>
+              {t("inv.yes")}
             </button>
-            <button type="button" className="btn min-h-14 px-sm" onClick={answer("no")} disabled={preview} tabIndex={preview ? -1 : undefined}>
-              Can’t make it
+            <button type="button" className="btn min-h-14 px-sm whitespace-normal" onClick={answer("no")} disabled={preview} tabIndex={skip}>
+              {t("g.no")}
             </button>
           </div>
-          <p className="text-sm font-bold text-ink-2">
-            Please reply by {dayLong(party.deadline)}, {mmdd(party.deadline)}
-          </p>
+          <p className="text-sm font-bold text-ink-2">{t("inv.replyBy", { day: dayLong(party.deadline), date: md(party.deadline) })}</p>
         </section>
 
         {albumHref && (
@@ -222,17 +217,17 @@ export function InviteView({
               <CameraIcon size={22} />
             </span>
             <span className="flex flex-col">
-              <span className="font-display text-lg font-semibold">Party Album</span>
-              <span className="text-sm text-ink-2">See the photos and add yours, no account needed</span>
+              <span className="font-display text-lg font-semibold">{t("inv.album")}</span>
+              <span className="text-sm text-ink-2">{t("th.photosS")}</span>
             </span>
           </Link>
         )}
       </div>
 
       <footer className="mt-auto flex flex-col items-center gap-2xs px-md pt-lg pb-xl text-center">
-        <span className="text-sm font-bold text-ink-2">Made with Chip In</span>
-        <Link href="/party/new" className="flex min-h-11 items-center font-extrabold" tabIndex={preview ? -1 : undefined}>
-          Make your own invite
+        <span className="text-sm font-bold text-ink-2">{t("inv.madeWith")}</span>
+        <Link href="/party/new" className="flex min-h-11 items-center font-extrabold" tabIndex={skip}>
+          {t("inv.makeOwn")}
         </Link>
       </footer>
     </div>

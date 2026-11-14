@@ -26,6 +26,8 @@ Next.js 16 (App Router, Cache Components), React 19, TypeScript, Tailwind 4, Pos
   Тема — колонка `parties.theme`, меняется на `/party/[id]/invite` (`PUT /api/party/[id]/theme`), у демо — в памяти процесса.
   Гость: приглашение `components/invite/invite-view.tsx` → шаги `rsvp-flow.tsx` (имя → сколько придут → аллергии → взнос → готово),
   один POST в конце; число людей и аллергии — колонки `party_events.people`/`note`, на дашборде «N people» и «Allergies and notes».
+  Тексты приглашения, шагов гостя, выбора дизайна и «Use the money» — `src/lib/i18n/dict/invite.ts` (en/ru/kk),
+  подмешиваются к основным словарям в `dict/index.ts`. Аллергии в базе по-английски, на экран — через `noteLabel`.
 - **Макет на демо-данных**: лендинг, вход, идеи AI Dream Finder и paywall в мастере. Group Wallet и Dream Fund — страницы остались,
   но ссылок на них в интерфейсе нет (убраны как демо). «Use the money» (`/party/[id]/payout`) — без раздела в Dream Fund.
 - Демо — встроенное событие `emma7k2q` (`DEMO_PARTY`, в базу не пишется): засев $210, 14 из 25 гостей и 12 фото есть только у него.

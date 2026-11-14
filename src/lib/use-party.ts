@@ -65,7 +65,7 @@ export async function postPartyEvent(
       body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return { ok: false, error: typeof data.error === "string" ? data.error : "Something went wrong, try again" };
+    if (!res.ok) return { ok: false, error: typeof data.error === "string" ? data.error : "Bad request" };
     return { ok: true, state: data as PartyState };
   } catch {
     return { ok: false, error: "No connection, try again" };

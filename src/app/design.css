@@ -22,7 +22,7 @@
   --color-scrim: rgb(7 5 26 / 0.58); --color-shadow: rgb(7 5 26 / 0.3); --color-shadow-soft: rgb(7 5 26 / 0.12);
   --color-focus: #07051A; --color-error: #B42318; --color-success: #14532D;
 
-  --font-display: var(--font-lexend), "Lexend", ui-rounded, ui-sans-serif, sans-serif; --font-body: var(--font-manrope), "Manrope", ui-sans-serif, system-ui, sans-serif; --font-outlier: var(--font-silkscreen), "Silkscreen", ui-monospace, monospace;
+  --font-display: var(--font-lexend), "Lexend", var(--font-manrope), "Manrope", ui-rounded, ui-sans-serif, sans-serif; --font-body: var(--font-manrope), "Manrope", ui-sans-serif, system-ui, sans-serif; --font-outlier: var(--font-silkscreen), "Silkscreen", ui-monospace, monospace;
   --display-weight: 600; --tracking-display: -0.035em;
   --radius-card: 24px; --radius-stock: 14px; --radius-input: 14px; --radius-tag: 10px; --radius-pill: 999px; --rule-hair: 1px;
   --shadow-paper: drop-shadow(0 0 0.6px rgb(7 5 26 / 0.28)) drop-shadow(1.5px 2.5px 1.5px rgb(7 5 26 / 0.08)) drop-shadow(6px 14px 16px rgb(7 5 26 / 0.12));

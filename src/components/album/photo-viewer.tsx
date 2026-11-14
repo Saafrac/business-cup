@@ -3,10 +3,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, DownloadIcon } from "@/components/icons";
 import { SEED_ALT, type AlbumPhoto } from "@/lib/album";
-
-// Время праздника, а не часовой пояс зрителя: продукт для США, демо-событие в Нью-Йорке
-const time = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+import { useI18n } from "@/lib/i18n";
 
 /** Полноэкранный просмотр: стрелки, клавиши ← → Esc, свайп на телефоне, «Сохранить» */
 export function PhotoViewer({
@@ -20,6 +17,7 @@ export function PhotoViewer({
   onIndex: (i: number) => void;
   onClose: () => void;
 }) {
+  const { t, lit, photoTime } = useI18n();
   const p = photos[index];
   const startX = useRef<number | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -43,14 +41,14 @@ export function PhotoViewer({
   }, [index, n, onClose, onIndex]);
 
   if (!p) return null;
-  const alt = SEED_ALT[p.id] ?? `Photo shared by ${p.guest}`;
+  const alt = SEED_ALT[p.id] ? lit(SEED_ALT[p.id]) : t("al.sharedAria", { name: p.guest });
   const saveHref = p.seed ? p.src : `${p.src}?download=1`;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Photo viewer"
+      aria-label={t("al.viewer")}
       className="on-dark fixed inset-0 z-(--z-modal) flex flex-col bg-ink text-night-ink"
     >
       <div className="flex items-center gap-xs py-sm pr-sm pl-xs">
@@ -58,19 +56,19 @@ export function PhotoViewer({
           ref={closeRef}
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t("close")}
           className="flex size-11 items-center justify-center border-0 bg-transparent text-night-ink"
         >
           <CloseIcon size={22} />
         </button>
         <div className="flex flex-1 flex-col">
-          <span className="font-extrabold">Shared by {p.guest}</span>
+          <span className="font-extrabold">{t("al.sharedBy", { name: p.guest })}</span>
           <time className="text-sm text-night-muted" dateTime={p.createdAt}>
-            {time(p.createdAt)}
+            {photoTime(p.createdAt)}
           </time>
         </div>
         <span className="label text-night-muted!">
-          {index + 1} of {n}
+          {t("al.ofN", { i: index + 1, n })}
         </span>
       </div>
 
@@ -93,7 +91,7 @@ export function PhotoViewer({
             <button
               type="button"
               onClick={() => go(-1)}
-              aria-label="Previous photo"
+              aria-label={t("al.prev")}
               className="absolute top-1/2 left-xs flex size-11 -translate-y-1/2 items-center justify-center rounded-pill border-0 bg-scrim text-paper"
             >
               <ChevronLeftIcon size={20} />
@@ -101,7 +99,7 @@ export function PhotoViewer({
             <button
               type="button"
               onClick={() => go(1)}
-              aria-label="Next photo"
+              aria-label={t("al.next")}
               className="absolute top-1/2 right-xs flex size-11 -translate-y-1/2 items-center justify-center rounded-pill border-0 bg-scrim text-paper"
             >
               <ChevronRightIcon size={20} />
@@ -117,9 +115,9 @@ export function PhotoViewer({
           className="flex min-h-12 items-center gap-2xs rounded-stock px-sm font-extrabold text-night-ink no-underline hover:text-night-ink"
         >
           <DownloadIcon size={22} />
-          Save
+          {t("al.save")}
         </a>
-        <span className="label text-night-muted!">Swipe or use the arrows</span>
+        <span className="label text-night-muted!">{t("al.swipe")}</span>
       </div>
     </div>
   );

@@ -6,11 +6,13 @@ import { ArrowLeftIcon } from "@/components/icons";
 import { confettiStyle, GiftArt, mascotSrc } from "@/components/invite/invite-view";
 import { cn } from "@/components/shell";
 import { usd } from "@/lib/demo";
-import { calendarUrl, dayLong, giftShort, goalUsd, partyUrls, type PartyInfo } from "@/lib/party";
+import { useI18n, type TFn } from "@/lib/i18n";
+import type { MessageKey } from "@/lib/i18n/dict";
+import { calendarUrl, goalUsd, partyUrls, type PartyInfo } from "@/lib/party";
 import { usdShort, type PartyState } from "@/lib/party-state";
 import { postPartyEvent } from "@/lib/use-party";
 
-// Короткие шаги ответа гостя (макет «G2 · Steps»): имя → кто придёт → аллергии → взнос → готово; «Can’t make it» — свой экран.
+// Короткие шаги ответа гостя (макет «G2 · Steps»): имя → кто придёт → аллергии → взнос → готово; «Не смогу» — свой экран.
 // На сервер уходит один запрос в конце: RSVP, число гостей, аллергии и взнос вместе.
 
 export type FlowStart = "yes" | "no" | "chip";
@@ -21,7 +23,26 @@ type How = "test" | "external" | "later" | "rsvp";
 const AMOUNTS: Amount[] = [10, 20, 25, "other"];
 const TIPS = [0, 5, 10];
 const MIN_OTHER = 5;
-const ALLERGIES = ["Nuts", "Dairy", "Gluten", "Eggs", "Vegetarian", "None"];
+// Аллергии уходят организатору на английском (как и всё в базе), показываются на языке гостя
+const ALLERGIES: Array<[string, MessageKey]> = [
+  ["Nuts", "rf.al.nuts"],
+  ["Dairy", "rf.al.dairy"],
+  ["Gluten", "rf.al.gluten"],
+  ["Eggs", "rf.al.eggs"],
+  ["Vegetarian", "rf.al.veg"],
+  ["None", "rf.al.none"],
+];
+/** «Nuts, Strawberries» из базы → на языке организатора; своё («Strawberries») как есть */
+export function noteLabel(t: TFn, note: string) {
+  return note
+    .split(", ")
+    .map((part) => {
+      const key = ALLERGIES.find(([a]) => a === part)?.[1];
+      return key ? t(key) : part;
+    })
+    .join(", ");
+}
+
 const BURST = Array.from({ length: 22 }, (_, i) => [((i * 37) % 96) + 2, ((i * 53) % 42) + 2] as const);
 
 export function RsvpFlow({
@@ -37,6 +58,7 @@ export function RsvpFlow({
   onState: (s: PartyState) => void;
   onClose: () => void;
 }) {
+  const { t, err, giftShort } = useI18n();
   const short = giftShort(party.gift);
   const nameRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<FlowStart>(start);
@@ -67,8 +89,9 @@ export function RsvpFlow({
   const fee = cover && base > 0 ? Math.round(((base + 0.3) / (1 - 0.029) - base) * 100) / 100 : 0;
   const total = base + fee;
 
-  const picked = ALLERGIES.filter((a) => allergy[a] && a !== "None");
-  const note = [...picked, other.trim()].filter(Boolean).join(", ");
+  const picked = ALLERGIES.filter(([a]) => allergy[a] && a !== "None");
+  const note = [...picked.map(([a]) => a), other.trim()].filter(Boolean).join(", ");
+  const noteShown = [...picked.map(([, k]) => t(k)), other.trim()].filter(Boolean).join(", ");
   const people = adults + kids;
 
   const go = (s: Step) => {
@@ -78,12 +101,12 @@ export function RsvpFlow({
 
   const next = () => {
     if (step === "name" && !name.trim()) {
-      setError("Type your name first");
+      setError(t("g.errName"));
       nameRef.current?.focus();
       return;
     }
     if (step === "who" && people < 1) {
-      setError("At least one person is coming");
+      setError(t("rf.errPeople"));
       return;
     }
     go(order[idx + 1]);
@@ -95,17 +118,17 @@ export function RsvpFlow({
     setError("");
     const guest = name.trim();
     if (!guest) {
-      setError("Type your name first");
+      setError(t("g.errName"));
       if (step !== "sorry") go(mode === "no" ? "sorry" : "name");
       return;
     }
     if ((how === "test" || how === "external") && otherInvalid) {
-      setError(`Chip in from $${MIN_OTHER}`);
+      setError(t("g.errMin", { n: MIN_OTHER }));
       return;
     }
     const pays = how === "test" || how === "external";
     if (!pays && !rsvp) {
-      onClose(); // «Maybe later» без RSVP: сохранять нечего
+      onClose(); // «Позже» без RSVP: сохранять нечего
       return;
     }
     setBusy(how);
@@ -117,7 +140,7 @@ export function RsvpFlow({
     });
     setBusy(null);
     if (!res.ok) {
-      setError(res.error);
+      setError(err(res.error));
       return;
     }
     onState(res.state);
@@ -133,30 +156,30 @@ export function RsvpFlow({
   };
 
   if (step === "done") {
+    const giftLine =
+      result && result.paid > 0
+        ? result.how === "external"
+          ? t("rf.sumExt", { amount: usd(result.paid) })
+          : t("rf.sumPaid", { amount: usd(result.paid) })
+        : t("rf.later");
+    const summary: Array<[string, string]> = [
+      ...(rsvp === "yes"
+        ? ([
+            [t("rf.sumComing"), t("rf.people", { a: adults, k: kids })],
+            [t("rf.sumAllergies"), noteShown || t("rf.noneGiven")],
+          ] as Array<[string, string]>)
+        : rsvp === "no"
+          ? ([[t("rf.sumAnswer"), t("g.no")]] as Array<[string, string]>)
+          : []),
+      [t("rf.sumGift"), giftLine],
+    ];
     return (
       <Done
         party={party}
         state={state}
         name={name.trim()}
         coming={rsvp === "yes"}
-        summary={[
-          ...(rsvp === "yes"
-            ? [
-                ["Coming", `${adults} ${adults === 1 ? "adult" : "adults"}${kids ? `, ${kids} ${kids === 1 ? "kid" : "kids"}` : ""}`],
-                ["Allergies", note || "None given"],
-              ]
-            : rsvp === "no"
-              ? [["Answer", "Can’t make it"]]
-              : []),
-          [
-            "Gift",
-            result && result.paid > 0
-              ? result.how === "external"
-                ? `You sent ${usd(result.paid)} by Venmo or Zelle`
-                : `You chipped in ${usd(result.paid)}`
-              : "Maybe later",
-          ],
-        ]}
+        summary={summary}
         chipLater={!result || result.paid === 0}
         onChip={() => {
           setMode(rsvp === "no" ? "no" : "chip");
@@ -172,18 +195,16 @@ export function RsvpFlow({
     return (
       <Screen theme={party.theme}>
         <div className="flex flex-1 flex-col gap-lg px-md pt-md">
-          <button type="button" onClick={onClose} aria-label="Back to the invite" className="flex size-11 items-center justify-center border-0 bg-transparent p-0 text-ink">
+          <button type="button" onClick={onClose} aria-label={t("rf.backInvite")} className="flex size-11 items-center justify-center border-0 bg-transparent p-0 text-ink">
             <ArrowLeftIcon size={22} />
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG темы из public */}
           <img src={mascotSrc(party.theme)} alt="" className="h-[180px] w-full object-contain" />
           <div className="flex flex-col gap-xs">
-            <h1 className="text-3xl">Sorry you’ll miss it</h1>
-            <p className="text-ink-2">
-              We’ll let the organizer know. Want to chip in for the {short} anyway? It’s optional.
-            </p>
+            <h1 className="text-3xl">{t("rf.sorryH")}</h1>
+            <p className="text-ink-2">{t("rf.sorryP", { gift: short })}</p>
           </div>
-          <Field id="sorry-name" label="Your name">
+          <Field id="sorry-name" label={t("g.nameL")}>
             <input
               ref={nameRef}
               id="sorry-name"
@@ -191,7 +212,7 @@ export function RsvpFlow({
               autoComplete="off"
               autoCapitalize="words"
               maxLength={40}
-              placeholder="For example, Liam"
+              placeholder={t("g.nameP")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -200,20 +221,20 @@ export function RsvpFlow({
         <Footer error={error}>
           <button
             type="button"
-            className="btn btn--primary btn--block"
+            className="btn btn--primary btn--block whitespace-normal"
             onClick={() => {
               if (!name.trim()) {
-                setError("Type your name first");
+                setError(t("g.errName"));
                 nameRef.current?.focus();
                 return;
               }
               go("chip");
             }}
           >
-            Chip in for the {short}
+            {t("rf.chipFor", { gift: short })}
           </button>
           <button type="button" disabled={busy !== null} onClick={() => send("rsvp")} className="link-btn">
-            {busy === "rsvp" ? "Sending…" : "No thanks, just send my answer"}
+            {busy === "rsvp" ? t("rf.sending") : t("rf.justAnswer")}
           </button>
         </Footer>
       </Screen>
@@ -223,11 +244,11 @@ export function RsvpFlow({
   return (
     <Screen theme={party.theme}>
       <div className="flex items-center gap-sm px-md pt-sm">
-        <button type="button" onClick={back} aria-label="Back" className="flex size-11 items-center justify-center border-0 bg-transparent p-0 text-ink">
+        <button type="button" onClick={back} aria-label={t("rf.back")} className="flex size-11 items-center justify-center border-0 bg-transparent p-0 text-ink">
           <ArrowLeftIcon size={22} />
         </button>
         {order.length > 1 && (
-          <div className="steps-dots" role="img" aria-label={`Step ${idx + 1} of ${order.length}`}>
+          <div className="steps-dots" role="img" aria-label={t("rf.stepOf", { n: idx + 1, m: order.length })}>
             {order.map((s, k) => (
               <i key={s} data-on={k <= idx ? "true" : "false"} />
             ))}
@@ -240,8 +261,8 @@ export function RsvpFlow({
       <div className="flex flex-1 flex-col gap-lg px-md pt-lg pb-lg">
         {step === "name" && (
           <>
-            <h1 className="text-3xl">Who’s answering?</h1>
-            <Field id="guest-name" label="Your name">
+            <h1 className="text-3xl">{t("rf.nameH")}</h1>
+            <Field id="guest-name" label={t("g.nameL")}>
               <input
                 ref={nameRef}
                 id="guest-name"
@@ -249,22 +270,22 @@ export function RsvpFlow({
                 autoComplete="off"
                 autoCapitalize="words"
                 maxLength={40}
-                placeholder="For example, Liam"
+                placeholder={t("g.nameP")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && next()}
               />
             </Field>
-            <p className="text-sm text-ink-2">The organizer sees your name. Other guests see only the headcount.</p>
+            <p className="text-sm text-ink-2">{t("rf.nameP")}</p>
           </>
         )}
 
         {step === "who" && (
           <>
-            <h1 className="text-3xl">How many are coming?</h1>
+            <h1 className="text-3xl">{t("rf.whoH")}</h1>
             <div className="flex flex-col">
-              <Counter label="Adults" value={adults} onChange={setAdults} min={0} />
-              <Counter label="Kids" value={kids} onChange={setKids} min={0} />
+              <Counter label={t("rf.adults")} less={t("rf.lessAdults")} more={t("rf.moreAdults")} value={adults} onChange={setAdults} />
+              <Counter label={t("rf.kids")} less={t("rf.lessKids")} more={t("rf.moreKids")} value={kids} onChange={setKids} />
             </div>
           </>
         )}
@@ -272,11 +293,11 @@ export function RsvpFlow({
         {step === "allergies" && (
           <>
             <div className="flex flex-col gap-xs">
-              <h1 className="text-3xl">Any allergies?</h1>
-              <p className="text-ink-2">The organizer will plan the food around them.</p>
+              <h1 className="text-3xl">{t("rf.alH")}</h1>
+              <p className="text-ink-2">{t("rf.alP")}</p>
             </div>
             <div className="flex flex-wrap gap-xs">
-              {ALLERGIES.map((a) => (
+              {ALLERGIES.map(([a, key]) => (
                 <button
                   key={a}
                   type="button"
@@ -286,16 +307,16 @@ export function RsvpFlow({
                     setAllergy((cur) => (a === "None" ? { None: !cur.None } : { ...cur, [a]: !cur[a], None: false }))
                   }
                 >
-                  {a}
+                  {t(key)}
                 </button>
               ))}
             </div>
-            <Field id="allergy-other" label="Anything else">
+            <Field id="allergy-other" label={t("rf.alOther")}>
               <input
                 id="allergy-other"
                 className="input"
                 maxLength={80}
-                placeholder="Strawberries, for example"
+                placeholder={t("rf.alOtherP")}
                 value={other}
                 onChange={(e) => setOther(e.target.value)}
               />
@@ -305,25 +326,24 @@ export function RsvpFlow({
 
         {step === "chip" && (
           <>
-            <h1 className="text-3xl">Chip in for the {short}?</h1>
+            <h1 className="text-3xl">{t("rf.chipH", { gift: short })}</h1>
             <div className="flex items-center gap-md">
               <span className="flex size-16 shrink-0 items-center justify-center rounded-stock bg-(--theme-soft)">
                 <GiftArt gift={party.gift} size={34} />
               </span>
               <p className="font-bold">
-                <span className="num text-accent">{usdShort(state.raisedCents)}</span> of ${goalUsd(party)}. Optional, and other guests
-                never see your amount.
+                <span className="num text-accent">{usdShort(state.raisedCents)}</span> {t("rf.chipP", { goal: goalUsd(party) })}
               </p>
             </div>
             <div className="grid grid-cols-4 gap-xs">
               {AMOUNTS.map((a) => (
                 <button key={a} type="button" className="choice" aria-pressed={amount === a} onClick={() => setAmount(a)}>
-                  {a === "other" ? "Other" : `$${a}`}
+                  {a === "other" ? t("g.other") : `$${a}`}
                 </button>
               ))}
             </div>
             {amount === "other" && (
-              <Field id="other-amount" label={`Your amount, from $${MIN_OTHER}`}>
+              <Field id="other-amount" label={t("g.otherL", { n: MIN_OTHER })}>
                 <input
                   id="other-amount"
                   className="input"
@@ -338,29 +358,24 @@ export function RsvpFlow({
               </Field>
             )}
             <div className="flex flex-col gap-xs">
-              <span className="text-sm font-extrabold">A tip for Chip In</span>
+              <span className="text-sm font-extrabold">{t("g.tipH")}</span>
               <div className="grid grid-cols-3 gap-xs">
-                {TIPS.map((t) => (
-                  <button key={t} type="button" className="choice min-h-11" aria-pressed={tip === t} onClick={() => setTip(t)}>
-                    {t === 0 ? "No tip" : `${t}%`}
+                {TIPS.map((tp) => (
+                  <button key={tp} type="button" className="choice min-h-11" aria-pressed={tip === tp} onClick={() => setTip(tp)}>
+                    {tp === 0 ? t("g.noTip") : `${tp}%`}
                   </button>
                 ))}
               </div>
               <label htmlFor="fee" className="flex min-h-11 cursor-pointer items-center gap-sm text-sm font-semibold">
                 <input id="fee" type="checkbox" checked={cover} onChange={() => setCover((c) => !c)} className="m-0 size-[22px] shrink-0 accent-accent" />
-                <span>
-                  Cover the card fee ({usd(fee)}) so {party.honoree} gets it all
-                </span>
+                <span>{t("rf.fee", { amount: usd(fee), name: party.honoree })}</span>
               </label>
             </div>
           </>
         )}
       </div>
 
-      <Footer
-        error={error}
-        hint={idx === 0 && mode === "yes" ? "Four quick questions, about 30 seconds" : idx > 0 ? "Your answers are sent at the end" : undefined}
-      >
+      <Footer error={error} hint={idx === 0 && mode === "yes" ? t("rf.hintStart") : idx > 0 ? t("rf.hintEnd") : undefined}>
         {step === "chip" ? (
           <>
             <button
@@ -369,24 +384,24 @@ export function RsvpFlow({
               onClick={() => send("test")}
               className="btn btn--primary btn--block min-h-14 text-lg"
             >
-              {busy === "test" ? "Paying…" : `Test payment ${usd(total)}`}
+              {busy === "test" ? t("g.paying") : t("g.test", { amount: usd(total) })}
             </button>
-            <button type="button" disabled={busy !== null || otherInvalid} onClick={() => send("external")} className="btn btn--block">
-              {busy === "external" ? "Saving…" : `I sent ${usd(gift)} by Venmo or Zelle`}
+            <button type="button" disabled={busy !== null || otherInvalid} onClick={() => send("external")} className="btn btn--block whitespace-normal">
+              {busy === "external" ? t("g.saving") : t("rf.ext", { amount: usd(gift) })}
             </button>
             <button type="button" disabled={busy !== null} onClick={() => send("later")} className="link-btn">
-              {busy === "later" ? "Sending…" : rsvp ? "Maybe later, just send my answer" : "Maybe later"}
+              {busy === "later" ? t("rf.sending") : rsvp ? t("rf.laterSend") : t("rf.later")}
             </button>
-            <span className="text-center text-xs font-semibold text-ink-2">Demo mode: no card is charged</span>
+            <span className="text-center text-xs font-semibold text-ink-2">{t("g.demo")}</span>
           </>
         ) : (
           <>
             <button type="button" onClick={next} className="btn btn--primary btn--block min-h-14 text-lg">
-              Next
+              {t("rf.next")}
             </button>
             {(step === "who" || step === "allergies") && (
               <button type="button" onClick={() => go(order[idx + 1])} className="link-btn">
-                Skip this
+                {t("rf.skip")}
               </button>
             )}
           </>
@@ -411,25 +426,24 @@ function Done({
   state: PartyState;
   name: string;
   coming: boolean;
-  summary: string[][];
+  summary: Array<[string, string]>;
   chipLater: boolean;
   onChip: () => void;
   onRestart: () => void;
   short: string;
 }) {
+  const { t, title, dayLong } = useI18n();
   const urls = partyUrls(party.id);
   return (
     <Screen theme={party.theme} className="overflow-hidden">
-      {BURST.map(([l, t], i) => (
-        <span key={i} aria-hidden="true" className="pixel confetti" style={confettiStyle(i, l, t, 45)} />
+      {BURST.map(([l, top], i) => (
+        <span key={i} aria-hidden="true" className="pixel confetti" style={confettiStyle(i, l, top, 45)} />
       ))}
       <div className="relative flex flex-col items-center gap-md px-md pt-xl text-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- SVG темы из public */}
         <img src={mascotSrc(party.theme)} alt="" className="h-[182px] w-[260px] object-contain" />
-        <h1 className="max-w-[14ch] text-3xl">{coming ? `See you on ${dayLong(party.date)}, ${name}!` : `Thanks, ${name}!`}</h1>
-        <p className="text-ink-2">
-          {state.coming} coming so far, {usdShort(state.raisedCents)} raised for the {short}.
-        </p>
+        <h1 className="max-w-[14ch] text-3xl">{coming ? t("rf.seeYou", { day: dayLong(party.date), name }) : t("rf.thanks", { name })}</h1>
+        <p className="text-ink-2">{t("rf.status", { n: state.coming, raised: usdShort(state.raisedCents), gift: short })}</p>
       </div>
       <div className="relative flex flex-col gap-sm px-md pt-lg">
         <dl className="invite-block m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-md gap-y-xs px-lg py-md">
@@ -441,20 +455,20 @@ function Done({
           ))}
         </dl>
         {coming && (
-          <a className="btn btn--primary btn--block" href={calendarUrl(party)} target="_blank" rel="noopener noreferrer">
-            Add to calendar
+          <a className="btn btn--primary btn--block" href={calendarUrl(party, title(party))} target="_blank" rel="noopener noreferrer">
+            {t("inv.calendar")}
           </a>
         )}
         {chipLater && (
-          <button type="button" className="btn btn--block" onClick={onChip}>
-            Chip in for the {short}
+          <button type="button" className="btn btn--block whitespace-normal" onClick={onChip}>
+            {t("rf.chipFor", { gift: short })}
           </button>
         )}
         <Link className="btn btn--block" href={urls.album}>
-          Party Album
+          {t("inv.album")}
         </Link>
         <button type="button" onClick={onRestart} className="link-btn">
-          Change my answer
+          {t("rf.change")}
         </button>
       </div>
       <Link
@@ -462,8 +476,8 @@ function Done({
         className="paper torn-top relative mt-auto flex items-center justify-between gap-md bg-paper-2 px-md pt-xl pb-lg text-ink no-underline hover:text-ink max-sm:mt-xl"
       >
         <span className="flex flex-col">
-          <span className="font-display text-lg font-semibold tracking-[-0.02em]">Got an event coming up?</span>
-          <span className="text-sm text-ink-2">Make a free invite in 2 minutes</span>
+          <span className="font-display text-lg font-semibold tracking-[-0.02em]">{t("rf.ctaH")}</span>
+          <span className="text-sm text-ink-2">{t("rf.ctaP")}</span>
         </span>
         <span aria-hidden="true" className="text-2xl font-extrabold">
           →
@@ -505,30 +519,30 @@ function Field({ id, label, children }: { id: string; label: string; children: R
   );
 }
 
-function Counter({ label, value, onChange, min }: { label: string; value: number; onChange: (n: number) => void; min: number }) {
+function Counter({
+  label,
+  less,
+  more,
+  value,
+  onChange,
+}: {
+  label: string;
+  less: string;
+  more: string;
+  value: number;
+  onChange: (n: number) => void;
+}) {
   return (
     <div className="flex items-center justify-between border-b border-rule py-sm">
       <span className="text-lg font-extrabold">{label}</span>
       <div className="flex items-center gap-md">
-        <button
-          type="button"
-          className="choice w-12 p-0"
-          aria-label={`Fewer ${label.toLowerCase()}`}
-          disabled={value <= min}
-          onClick={() => onChange(Math.max(min, value - 1))}
-        >
+        <button type="button" className="choice w-12 p-0" aria-label={less} disabled={value <= 0} onClick={() => onChange(Math.max(0, value - 1))}>
           −
         </button>
-        <span className="figure min-w-6 text-center text-2xl" role="status" aria-label={`${value} ${label.toLowerCase()}`}>
+        <span className="figure min-w-6 text-center text-2xl" role="status">
           {value}
         </span>
-        <button
-          type="button"
-          className="choice w-12 p-0"
-          aria-label={`More ${label.toLowerCase()}`}
-          disabled={value >= 10}
-          onClick={() => onChange(Math.min(10, value + 1))}
-        >
+        <button type="button" className="choice w-12 p-0" aria-label={more} disabled={value >= 10} onClick={() => onChange(Math.min(10, value + 1))}>
           +
         </button>
       </div>
