@@ -6,45 +6,32 @@ import { useState } from "react";
 import { PhotoViewer } from "@/components/album/photo-viewer";
 import { CopyIcon, ExternalIcon, TrashIcon } from "@/components/icons";
 import { AppHeader, Note } from "@/components/shell";
-import { SEED_ALT, albumHostLabel, albumUrlFor } from "@/lib/album";
-import { PARTY } from "@/lib/demo";
+import { SEED_ALT, albumHostLabel, type AlbumState } from "@/lib/album";
+import { partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
 import { useOrigin } from "@/lib/use-demo";
-import { organizerRequest, readStored, useAlbum, writeStored } from "@/lib/use-album";
+import { albumRequest, useAlbum } from "@/lib/use-album";
 
 /** Альбом у организатора: ссылка на альбом фотографа, QR для гостей, удаление фото */
-export function AlbumManage({ id }: { id: string }) {
-  const { album, setAlbum, refresh } = useAlbum(6000);
+export function AlbumManage({ party, initial }: { party: PartyInfo; initial: AlbumState }) {
+  const { album, setAlbum, refresh } = useAlbum(party.id, initial, 6000);
   const origin = useOrigin();
-  const [code, setCode] = useState(() => readStored("organizer"));
-  const [needCode, setNeedCode] = useState(false);
+  const urls = partyUrls(party.id);
   const [draft, setDraft] = useState<string | null>(null);
   const [linkMsg, setLinkMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
 
-  const albumLink = `${origin}${albumUrlFor(PARTY.slug)}`;
+  const albumLink = `${origin}${urls.album}`;
   const linkValue = draft ?? album.albumUrl ?? "";
   const uploaded = album.photos.filter((p) => !p.seed);
 
-  const call = async (path: string, init: RequestInit) => {
-    const res = await organizerRequest(path, init, code);
-    if (res.status === 403) {
-      setNeedCode(true);
-      return null;
-    }
-    if (code) writeStored("organizer", code);
-    setNeedCode(false);
-    return res;
-  };
-
   const saveLink = async (url: string | null) => {
     setLinkMsg("");
-    const res = await call("/link", {
+    const res = await albumRequest(party.id, "/link", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     });
-    if (!res) return;
     const data = (await res.json().catch(() => ({}))) as { albumUrl?: string | null; error?: string };
     if (!res.ok) {
       setLinkMsg(data.error ?? "Couldn’t save the link");
@@ -56,8 +43,8 @@ export function AlbumManage({ id }: { id: string }) {
   };
 
   const remove = async (photoId: string) => {
-    const res = await call(`/${photoId}`, { method: "DELETE" });
-    if (!res?.ok) return;
+    const res = await albumRequest(party.id, `/${photoId}`, { method: "DELETE" });
+    if (!res.ok) return;
     setAlbum((a) => ({ ...a, photos: a.photos.filter((p) => p.id !== photoId), count: a.count - 1 }));
     void refresh();
   };
@@ -74,12 +61,12 @@ export function AlbumManage({ id }: { id: string }) {
 
   return (
     <div className="paper min-h-dvh w-full bg-paper text-ink">
-      <AppHeader active="parties" avatar="S" avatarLabel="Signed in as Sarah" avatarClass="bg-signal-soft" />
+      <AppHeader active="parties" avatar="S" avatarLabel="Organizer" avatarClass="bg-signal-soft" />
 
       <div className="wrap flex flex-col gap-xl pt-md pb-3xl">
         <div className="flex flex-col gap-sm border-b-2 border-ink pb-md">
-          <nav aria-label={`${PARTY.honoree}’s party`} className="flex flex-wrap gap-2xs font-extrabold">
-            <Link href={`/party/${id}`} className="flex min-h-11 items-center px-sm text-ink-2 no-underline">
+          <nav aria-label={partyTitle(party)} className="flex flex-wrap gap-2xs font-extrabold">
+            <Link href={urls.dashboard} className="flex min-h-11 items-center px-sm text-ink-2 no-underline">
               Gift collection
             </Link>
             <span
@@ -89,28 +76,8 @@ export function AlbumManage({ id }: { id: string }) {
               Photo album
             </span>
           </nav>
-          <h1 className="text-display-s">
-            {PARTY.honoree} turns {PARTY.age}
-          </h1>
+          <h1 className="text-display-s">{partyTitle(party)}</h1>
         </div>
-
-        {needCode && (
-          <Note bg="var(--color-signal-soft)" className="flex flex-wrap items-end gap-md px-lg py-lg">
-            <div className="field min-w-0 flex-[1_1_260px]">
-              <label htmlFor="org-code">Organizer code</label>
-              <input
-                id="org-code"
-                className="input"
-                type="password"
-                autoComplete="off"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-              />
-              <span className="label">This is a public demo, so changes need the code. It’s DEMO_ADMIN_KEY on the server.</span>
-            </div>
-            <span className="label">Then repeat the action.</span>
-          </Note>
-        )}
 
         <div className="flex flex-wrap items-start gap-2xl">
           <section aria-labelledby="ph" className="flex min-w-0 flex-[999_1_640px] flex-col gap-lg">
@@ -131,6 +98,13 @@ export function AlbumManage({ id }: { id: string }) {
                 <dd className="figure m-0 text-3xl">{uploaded.length}</dd>
               </div>
             </dl>
+
+            {album.photos.length === 0 && (
+              <Note bg="var(--color-paper-2)" tilt={-0.5} className="flex flex-col gap-xs p-lg">
+                <span className="font-extrabold">No photos yet</span>
+                <span className="text-ink-2">Share the album link or QR at the event. Guests add photos from their phones, no account needed.</span>
+              </Note>
+            )}
 
             <ul role="list" className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-md p-0">
               {album.photos.map((p, i) => (
@@ -179,7 +153,7 @@ export function AlbumManage({ id }: { id: string }) {
                 <CopyIcon size={16} />
                 {copied ? "Copied" : "Copy the album link"}
               </button>
-              <Link className="btn btn--primary btn--block" href={albumUrlFor(PARTY.slug)}>
+              <Link className="btn btn--primary btn--block" href={urls.album}>
                 Open as a guest
               </Link>
             </section>
@@ -226,7 +200,12 @@ export function AlbumManage({ id }: { id: string }) {
                   </p>
                 )}
                 {album.albumUrl && (
-                  <a href={album.albumUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center gap-2xs text-sm font-extrabold">
+                  <a
+                    href={album.albumUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 items-center gap-2xs text-sm font-extrabold"
+                  >
                     <ExternalIcon size={16} />
                     Check it on {albumHostLabel(album.albumUrl)}
                   </a>

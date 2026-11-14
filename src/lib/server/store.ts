@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
+import { isDemo } from "@/lib/party";
 import { SEED_EVENTS, type NewEvent, type PartyEvent } from "@/lib/party-state";
 
 // Хранилище ленты событий. DATABASE_URL задан (Railway Postgres) — пишем в Postgres,
@@ -20,7 +21,8 @@ interface Store {
 
 const memory = globalThis as unknown as { __cgEvents?: Map<string, PartyEvent[]> };
 
-function seeded(): PartyEvent[] {
+function seeded(partyId: string): PartyEvent[] {
+  if (!isDemo(partyId)) return [];
   const base = Date.now() - SEED_EVENTS.length * 60_000;
   return SEED_EVENTS.map((e, i) => ({ ...e, id: randomUUID(), createdAt: new Date(base + i * 60_000).toISOString() }));
 }
@@ -28,7 +30,7 @@ function seeded(): PartyEvent[] {
 const memoryStore: Store = {
   async list(partyId) {
     memory.__cgEvents ??= new Map();
-    if (!memory.__cgEvents.has(partyId)) memory.__cgEvents.set(partyId, seeded());
+    if (!memory.__cgEvents.has(partyId)) memory.__cgEvents.set(partyId, seeded(partyId));
     return memory.__cgEvents.get(partyId)!;
   },
   async add(partyId, e) {
@@ -38,7 +40,7 @@ const memoryStore: Store = {
   },
   async reset(partyId) {
     memory.__cgEvents ??= new Map();
-    memory.__cgEvents.set(partyId, seeded());
+    memory.__cgEvents.set(partyId, seeded(partyId));
   },
 };
 
@@ -91,6 +93,7 @@ type Row = {
 };
 
 async function insertSeed(partyId: string) {
+  if (!isDemo(partyId)) return;
   const base = Date.now() - SEED_EVENTS.length * 60_000;
   const client = await pool().connect();
   try {
@@ -124,7 +127,7 @@ const pgStore: Store = {
          FROM party_events WHERE party_id = $1 ORDER BY created_at LIMIT $2`,
       [partyId, MAX_EVENTS_PER_PARTY],
     );
-    if (rows.length === 0) {
+    if (rows.length === 0 && isDemo(partyId)) {
       await insertSeed(partyId);
       ({ rows } = await pool().query<Row>(
         `SELECT id, kid, rsvp, amount_cents, tip_cents, method, created_at

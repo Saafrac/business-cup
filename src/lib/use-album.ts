@@ -1,26 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { seedPhotos, type AlbumPhoto, type AlbumState } from "@/lib/album";
-import { PARTY } from "@/lib/demo";
+import type { AlbumPhoto, AlbumState } from "@/lib/album";
 
-const ALBUM_API = `/api/party/${PARTY.id}/album`;
+const albumApi = (partyId: string) => `/api/party/${partyId}/album`;
 const GUEST_KEY = "chipin:guest-name";
-const ORGANIZER_KEY = "chipin:organizer-code";
-
-const initial = (): AlbumState => {
-  const photos = seedPhotos();
-  return { albumUrl: null, photos, count: photos.length, guests: new Set(photos.map((p) => p.guest)).size };
-};
 
 /** Альбом события: опрос сервера, новые фото гостей появляются без перезагрузки */
-export function useAlbum(intervalMs = 5000) {
+export function useAlbum(partyId: string, initial: AlbumState, intervalMs = 5000) {
   const [album, setAlbum] = useState<AlbumState>(initial);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(ALBUM_API, { cache: "no-store" });
+      const res = await fetch(albumApi(partyId), { cache: "no-store" });
       if (res.ok) {
         setAlbum((await res.json()) as AlbumState);
         setLoaded(true);
@@ -28,7 +21,7 @@ export function useAlbum(intervalMs = 5000) {
     } catch {
       // сеть пропала — показываем то, что уже есть, следующий опрос попробует снова
     }
-  }, []);
+  }, [partyId]);
 
   useEffect(() => {
     let stopped = false;
@@ -37,7 +30,7 @@ export function useAlbum(intervalMs = 5000) {
       if (!document.hidden) await refresh();
       if (!stopped) timer = setTimeout(tick, intervalMs);
     };
-    timer = setTimeout(tick, 0);
+    timer = setTimeout(tick, intervalMs);
     return () => {
       stopped = true;
       clearTimeout(timer);
@@ -51,18 +44,18 @@ export function useAlbum(intervalMs = 5000) {
   return { album, loaded, refresh, addLocal, setAlbum };
 }
 
-// Имя гостя и код организатора помним в браузере: это удобство, без них всё работает
-export function readStored(key: "guest" | "organizer") {
+// Имя гостя помним в браузере: это удобство, без него всё работает
+export function readStoredGuest() {
   try {
-    return localStorage.getItem(key === "guest" ? GUEST_KEY : ORGANIZER_KEY) ?? "";
+    return localStorage.getItem(GUEST_KEY) ?? "";
   } catch {
     return "";
   }
 }
 
-export function writeStored(key: "guest" | "organizer", value: string) {
+export function writeStoredGuest(value: string) {
   try {
-    localStorage.setItem(key === "guest" ? GUEST_KEY : ORGANIZER_KEY, value);
+    localStorage.setItem(GUEST_KEY, value);
   } catch {
     // приватный режим или запрет хранилища — просто не запоминаем
   }
@@ -118,6 +111,7 @@ export async function prepare(file: File) {
 export type UploadResult = { ok: true; photo: AlbumPhoto } | { ok: false; error: string };
 
 export function uploadPhoto(
+  partyId: string,
   prepared: { full: Resized; thumb: Resized },
   guest: string,
   onProgress: (pct: number) => void,
@@ -131,7 +125,7 @@ export function uploadPhoto(
 
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", ALBUM_API);
+    xhr.open("POST", albumApi(partyId));
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
     };
@@ -154,9 +148,6 @@ export function uploadPhoto(
   });
 }
 
-export async function organizerRequest(path: string, init: RequestInit, code: string) {
-  return fetch(`${ALBUM_API}${path}`, {
-    ...init,
-    headers: { ...(init.headers ?? {}), ...(code ? { "x-demo-key": code } : {}) },
-  });
+export async function albumRequest(partyId: string, path: string, init: RequestInit) {
+  return fetch(`${albumApi(partyId)}${path}`, init);
 }

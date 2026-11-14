@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { CopyIcon, QrIcon } from "@/components/icons";
 import { AppHeader, Bar, Key, NameTag, Note, SWATCH, type TagKind } from "@/components/shell";
-import { PARTY, TILT } from "@/lib/demo";
-import { usdShort, type GuestStatus } from "@/lib/party-state";
+import { TILT } from "@/lib/demo";
+import { dayShort, giftShort, goalUsd, mmdd, partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
+import { usdShort, type GuestStatus, type PartyState } from "@/lib/party-state";
 import { useOrigin } from "@/lib/use-demo";
 import { useParty } from "@/lib/use-party";
 
@@ -23,8 +24,11 @@ function listNames(names: string[]) {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-export function Dashboard({ id }: { id: string }) {
-  const { state } = useParty();
+export function Dashboard({ party, initial }: { party: PartyInfo; initial: PartyState }) {
+  const { state } = useParty(party.id, initial);
+  const urls = partyUrls(party.id);
+  const goal = goalUsd(party);
+  const short = giftShort(party.gift);
   const origin = useOrigin();
   const [edited, setEdited] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -34,8 +38,8 @@ export function Dashboard({ id }: { id: string }) {
   const quiet = state.guests.filter((g) => g.status === "open").slice(0, 3).map((g) => g.name);
   const nudge =
     edited ??
-    `Hi! ${PARTY.honoree}’s party is Sat ${PARTY.date} at ${PARTY.place}. Would love to know if you can come. Everyone is chipping in for her ${PARTY.giftShort}, totally optional.`;
-  const link = `${origin}/p/${PARTY.slug}`;
+    `Hi! ${partyTitle(party)}: ${dayShort(party.date)} ${mmdd(party.date)} at ${party.place}. Would love to know if you can come. Everyone is chipping in for the ${short}, totally optional.`;
+  const link = `${origin}${urls.guest}`;
 
   const copy = async () => {
     try {
@@ -59,35 +63,35 @@ export function Dashboard({ id }: { id: string }) {
           <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-md">
             <div className="flex flex-wrap items-center gap-sm">
               <h1 id="party" className="text-display-s">
-                {PARTY.honoree} turns {PARTY.age}
+                {partyTitle(party)}
               </h1>
               <span role="status" className="tag bg-accent-ink text-ink">
-                Open until {PARTY.deadline}
+                Open until {mmdd(party.deadline)}
               </span>
             </div>
             <div className="flex flex-wrap items-baseline gap-md">
               <span className="figure text-figure">{usdShort(state.raisedCents)}</span>
               <span className="text-lg font-extrabold">
-                of ${PARTY.goal} for the {PARTY.giftShort}
+                of ${goal} for the {short}
               </span>
             </div>
             <Bar
-              ratio={state.raisedCents / (PARTY.goal * 100)}
-              label={`${usdShort(state.raisedCents)} of $${PARTY.goal} raised`}
+              ratio={state.raisedCents / party.goalCents}
+              label={`${usdShort(state.raisedCents)} of $${goal} raised`}
               className="max-w-[560px]"
               style={{ backgroundColor: "var(--color-accent-deep)" }}
               fillStyle={{ backgroundColor: "var(--color-signal)" }}
             />
           </div>
           <div className="flex flex-wrap gap-sm">
-            <Link className="btn" href={`/party/${id}/qr`}>
+            <Link className="btn" href={urls.qr}>
               <QrIcon size={18} />
               QR for a screen
             </Link>
-            <Link className="btn" href={`/party/${id}/album`}>
+            <Link className="btn" href={urls.albumManage}>
               Photo album
             </Link>
-            <Link className="btn btn--signal" href={`/party/${id}/payout`}>
+            <Link className="btn btn--signal" href={urls.payout}>
               Split the money
             </Link>
           </div>
@@ -112,6 +116,12 @@ export function Dashboard({ id }: { id: string }) {
                 {state.coming} coming, {state.contributors} chipped in, {state.quiet} quiet
               </p>
             </div>
+            {state.guests.length === 0 && (
+              <Note bg="var(--color-paper-2)" tilt={-0.5} className="flex flex-col gap-xs p-lg">
+                <span className="font-extrabold">No answers yet</span>
+                <span className="text-ink-2">Copy the invite link into the group chat or show the QR. Guests appear here as they answer.</span>
+              </Note>
+            )}
             <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-sm sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))]">
               {state.guests.map((g, i) => {
                 const [kind, label] = LOOK[g.status];
@@ -141,7 +151,7 @@ export function Dashboard({ id }: { id: string }) {
                   ))}
                 </tbody>
               </table>
-              <p className="label">Only you see the amounts.</p>
+              <p className="label">Guests never see each other’s amounts, only the total.</p>
             </section>
 
             {quiet.length > 0 && (

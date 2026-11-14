@@ -1,18 +1,4 @@
 import "server-only";
-import { timingSafeEqual } from "node:crypto";
-
-// Действия организатора (удалить фото, сменить ссылку на альбом) на публичном демо закрыты ключом DEMO_ADMIN_KEY.
-// Ключ не задан (локальная разработка) — проверки нет.
-export function organizerAllowed(req: Request) {
-  const expected = process.env.DEMO_ADMIN_KEY;
-  if (!expected) return true;
-  const given = req.headers.get("x-demo-key");
-  if (!given) return false;
-  const a = Buffer.from(given);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
 // Свой лимит для загрузок: гость за раз выбирает десятки фото, общий лимит в 20 запросов/мин для этого мал
 const uploads = new Map<string, number[]>();
 export function uploadLimited(req: Request, limit = 80) {

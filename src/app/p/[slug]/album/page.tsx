@@ -1,16 +1,21 @@
-import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AlbumEntry } from "@/components/album/album-entry";
-import { PARTY } from "@/lib/demo";
+import { PageLoading } from "@/components/loading";
+import { loadPartyWithAlbum } from "@/lib/server/load";
 
-export const metadata: Metadata = {
-  title: `${PARTY.honoree}’s party album: add photos`,
-  robots: { index: false },
-};
+export const metadata = { title: "Photo album: add photos", robots: { index: false } };
 
-export function generateStaticParams() {
-  return [{ slug: PARTY.slug }];
+export default function Page({ params }: PageProps<"/p/[slug]/album">) {
+  return (
+    <Suspense fallback={<PageLoading phone />}>
+      {params.then(({ slug }) => (
+        <Load slug={slug} />
+      ))}
+    </Suspense>
+  );
 }
 
-export default function Page() {
-  return <AlbumEntry slug={PARTY.slug} />;
+async function Load({ slug }: { slug: string }) {
+  const { party, album } = await loadPartyWithAlbum(slug);
+  return <AlbumEntry party={party} initial={album} />;
 }

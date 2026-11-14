@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { seedPhotos, type AlbumPhoto, type AlbumState } from "@/lib/album";
+import { isDemo } from "@/lib/party";
 import { pool } from "@/lib/server/store";
 
 // Фото альбома: Postgres (bytea, полное фото + превью) при DATABASE_URL, иначе память процесса.
@@ -221,7 +222,7 @@ export function albumStore(): AlbumStore {
 export async function albumState(partyId: string): Promise<AlbumState> {
   const s = albumStore();
   const [uploaded, albumUrl] = await Promise.all([s.list(partyId), s.getUrl(partyId)]);
-  const photos = [...uploaded, ...seedPhotos()];
+  const photos = isDemo(partyId) ? [...uploaded, ...seedPhotos()] : uploaded;
   return {
     albumUrl,
     photos,

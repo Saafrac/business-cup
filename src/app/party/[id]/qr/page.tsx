@@ -1,10 +1,19 @@
+import { Suspense } from "react";
+import { PageLoading } from "@/components/loading";
 import { DemoQr } from "@/components/party/demo-qr";
-import { PARTY } from "@/lib/demo";
+import { loadPartyWithState } from "@/lib/server/load";
 
-export function generateStaticParams() {
-  return [{ id: PARTY.id }];
+export default function Page({ params }: PageProps<"/party/[id]/qr">) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      {params.then(({ id }) => (
+        <Load id={id} />
+      ))}
+    </Suspense>
+  );
 }
 
-export default function Page() {
-  return <DemoQr slug={PARTY.slug} />;
+async function Load({ id }: { id: string }) {
+  const { party, state } = await loadPartyWithState(id);
+  return <DemoQr party={party} initial={state} />;
 }

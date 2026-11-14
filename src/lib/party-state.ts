@@ -69,12 +69,6 @@ export const SEED_EVENTS: NewEvent[] = [
   ...SEED_RSVP.map(([guest, rsvp]): NewEvent => ({ guest, rsvp, amountCents: 0, tipCents: 0, method: null })),
 ];
 
-/** Засев с фиктивными id и временем — для первой отрисовки до ответа сервера */
-export function seedEventsForClient(): PartyEvent[] {
-  const base = Date.UTC(2026, 10, 30, 18, 0, 0);
-  return SEED_EVENTS.map((e, i) => ({ ...e, id: `seed-${i}`, createdAt: new Date(base + i * 60_000).toISOString() }));
-}
-
 export function eventText(e: Pick<PartyEvent, "guest" | "rsvp" | "amountCents" | "method">) {
   const who = e.guest;
   if (e.amountCents > 0) return e.method === "external" ? `${who} paid by Venmo` : `${who} chipped in`;
@@ -83,10 +77,14 @@ export function eventText(e: Pick<PartyEvent, "guest" | "rsvp" | "amountCents" |
   return `${who} opened the invite`;
 }
 
-export function buildState(events: PartyEvent[], invitedBase = GUESTS.length): PartyState {
+/**
+ * roster — заранее известный список гостей (есть только у демо: плитки «No answer» с самого начала);
+ * у нового события гости появляются, когда отвечают. invited — сколько позвали.
+ */
+export function buildState(events: PartyEvent[], roster: readonly string[] = [], invitedBase = roster.length): PartyState {
   const sorted = [...events].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const byGuest = new Map<string, { rsvp: Rsvp | null; amount: number; external: boolean; card: boolean }>();
-  const order: string[] = [...GUESTS];
+  const order: string[] = [...roster];
   let raised = 0;
 
   for (const e of sorted) {

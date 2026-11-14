@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { BikeIcon } from "@/components/icons";
+import { BikeIcon, GiftIcon, PaletteIcon, TelescopeIcon } from "@/components/icons";
 import { Bar, PhoneColumn } from "@/components/shell";
-import { PARTY, usd } from "@/lib/demo";
-import { usdShort } from "@/lib/party-state";
+import { usd } from "@/lib/demo";
+import { dayLong, giftShort, goalUsd, inviteHeadline, mmdd, partyUrls, time12, type PartyInfo } from "@/lib/party";
+import { usdShort, type PartyState } from "@/lib/party-state";
 import { postPartyEvent, useParty } from "@/lib/use-party";
 
 type Amount = 10 | 20 | 25 | "other";
@@ -15,9 +16,17 @@ const AMOUNTS: Amount[] = [10, 20, 25, "other"];
 const TIPS = [0, 5, 10];
 const MIN_OTHER = 5;
 
-export function GuestPage({ slug }: { slug: string }) {
+function GiftArt({ gift }: { gift: string }) {
+  const g = giftShort(gift);
+  const Icon = g === "bike" ? BikeIcon : g === "telescope" ? TelescopeIcon : g === "art set" ? PaletteIcon : GiftIcon;
+  return <Icon size={40} strokeWidth={1.6} />;
+}
+
+export function GuestPage({ party, initial }: { party: PartyInfo; initial: PartyState }) {
   const router = useRouter();
-  const { state, accept } = useParty();
+  const { state, accept } = useParty(party.id, initial);
+  const goal = goalUsd(party);
+  const short = giftShort(party.gift);
   const nameRef = useRef<HTMLInputElement>(null);
   const [guest, setGuest] = useState("");
   const [rsvp, setRsvp] = useState<"yes" | "no">("yes");
@@ -50,6 +59,7 @@ export function GuestPage({ slug }: { slug: string }) {
     }
     setBusy(how);
     const res = await postPartyEvent(
+      party.id,
       how === "rsvp"
         ? { guest: name, rsvp }
         : { guest: name, rsvp, amount: gift, tip: tipAmt, method: how === "external" ? "external" : "test" },
@@ -61,7 +71,7 @@ export function GuestPage({ slug }: { slug: string }) {
     }
     accept(res.state);
     const paid = how === "card" ? total : how === "external" ? gift : 0;
-    router.push(`/p/${slug}/thanks?guest=${encodeURIComponent(name)}&paid=${paid.toFixed(2)}&how=${how}`);
+    router.push(`${partyUrls(party.id).thanks}?guest=${encodeURIComponent(name)}&paid=${paid.toFixed(2)}&how=${how}`);
   };
 
   return (
@@ -72,20 +82,20 @@ export function GuestPage({ slug }: { slug: string }) {
           <span className="text-sm font-bold">No account needed</span>
         </div>
         <h1 className="text-[3.25rem] leading-[0.98]">
-          {PARTY.honoree} is turning {PARTY.age}
+          {inviteHeadline(party)}
         </h1>
       </div>
 
       <div className="sheet relative z-[1] mx-md -mt-2xl" style={{ rotate: "-1.2deg" }}>
         <div className="paper torn-note grid grid-cols-[auto_minmax(0,1fr)] items-center gap-md bg-signal-soft p-lg">
           <div className="flex flex-col border-r-2 border-dashed border-signal-deep pr-md">
-            <span className="text-sm font-extrabold">Saturday</span>
-            <span className="num font-display text-2xl leading-[1.05] font-semibold tracking-[-0.03em]">{PARTY.date}</span>
-            <span className="text-sm font-bold">{PARTY.time}</span>
+            <span className="text-sm font-extrabold">{dayLong(party.date)}</span>
+            <span className="num font-display text-2xl leading-[1.05] font-semibold tracking-[-0.03em]">{mmdd(party.date)}</span>
+            <span className="text-sm font-bold">{time12(party.time)}</span>
           </div>
           <div className="flex flex-col">
-            <span className="font-extrabold">{PARTY.place}</span>
-            <span className="text-sm text-ink-2">{PARTY.placeNote}</span>
+            <span className="font-extrabold">{party.place}</span>
+            {party.placeNote && <span className="text-sm text-ink-2">{party.placeNote}</span>}
           </div>
         </div>
       </div>
@@ -93,24 +103,24 @@ export function GuestPage({ slug }: { slug: string }) {
       <section aria-labelledby="gift" className="flex flex-col gap-md px-md pt-xl">
         <div className="flex items-center gap-md">
           <span className="paper flex size-16 shrink-0 items-center justify-center rounded-stock bg-signal">
-            <BikeIcon size={40} strokeWidth={1.6} />
+            <GiftArt gift={party.gift} />
           </span>
           <div className="flex flex-col">
             <h2 id="gift" className="text-xl">
-              {PARTY.gift}
+              {party.gift}
             </h2>
-            <p className="text-sm text-ink-2">The gift {PARTY.honoree} asked for</p>
+            <p className="text-sm text-ink-2">The gift for {party.honoree}</p>
           </div>
         </div>
         <div className="flex items-baseline justify-between">
           <span className="num font-display text-3xl font-semibold tracking-[-0.03em] text-accent">
             {usdShort(state.raisedCents)}
           </span>
-          <span className="font-bold text-ink-2">of ${PARTY.goal}</span>
+          <span className="font-bold text-ink-2">of ${goal}</span>
         </div>
         <Bar
-          ratio={state.raisedCents / (PARTY.goal * 100)}
-          label={`${usdShort(state.raisedCents)} of $${PARTY.goal} raised`}
+          ratio={state.raisedCents / party.goalCents}
+          label={`${usdShort(state.raisedCents)} of $${goal} raised`}
         />
         <p className="font-extrabold">
           {state.contributors} of {state.invited} guests are in
@@ -149,7 +159,7 @@ export function GuestPage({ slug }: { slug: string }) {
 
         <section aria-labelledby="chip" className="flex flex-col gap-sm">
           <h2 id="chip" className="text-2xl">
-            Chip in for the {PARTY.giftShort}
+            Chip in for the {short}
           </h2>
           <p className="text-sm text-ink-2">Optional. Other guests see the total, never your amount.</p>
           <div className="grid grid-cols-4 gap-xs pt-xs">
@@ -197,7 +207,7 @@ export function GuestPage({ slug }: { slug: string }) {
               onChange={() => setCover((c) => !c)}
               className="m-0 size-[22px] shrink-0 accent-accent"
             />
-            <span>Cover the card fee (2.9% + $0.30) so {PARTY.honoree} gets it all</span>
+            <span>Cover the card fee (2.9% + $0.30) so {party.honoree} gets it all</span>
           </label>
         </section>
 

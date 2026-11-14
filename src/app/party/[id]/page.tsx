@@ -1,11 +1,19 @@
+import { Suspense } from "react";
+import { PageLoading } from "@/components/loading";
 import { Dashboard } from "@/components/party/dashboard";
-import { PARTY } from "@/lib/demo";
+import { loadPartyWithState } from "@/lib/server/load";
 
-export function generateStaticParams() {
-  return [{ id: PARTY.id }];
+export default function Page({ params }: PageProps<"/party/[id]">) {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      {params.then(({ id }) => (
+        <Load id={id} />
+      ))}
+    </Suspense>
+  );
 }
 
-export default function Page() {
-  const id = PARTY.id;
-  return <Dashboard id={id} />;
+async function Load({ id }: { id: string }) {
+  const { party, state } = await loadPartyWithState(id);
+  return <Dashboard party={party} initial={state} />;
 }

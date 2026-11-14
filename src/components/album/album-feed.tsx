@@ -6,13 +6,13 @@ import { PhotoViewer } from "@/components/album/photo-viewer";
 import { UploadSheet } from "@/components/album/upload-sheet";
 import { CameraIcon, ChevronLeftIcon, ExternalIcon, PlusIcon } from "@/components/icons";
 import { Note, PhoneColumn } from "@/components/shell";
-import { SEED_ALT, albumHostLabel, albumUrlFor } from "@/lib/album";
-import { PARTY } from "@/lib/demo";
+import { SEED_ALT, albumHostLabel, type AlbumState } from "@/lib/album";
+import { partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
 import { useAlbum } from "@/lib/use-album";
 
 /** Лента альбома: сетка 3 в ряд, новые сверху, тап — полноэкранный просмотр */
-export function AlbumFeed({ slug }: { slug: string }) {
-  const { album, addLocal } = useAlbum();
+export function AlbumFeed({ party, initial }: { party: PartyInfo; initial: AlbumState }) {
+  const { album, addLocal } = useAlbum(party.id, initial);
   const [open, setOpen] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const photos = album.photos;
@@ -23,26 +23,21 @@ export function AlbumFeed({ slug }: { slug: string }) {
       <div className="flex flex-col gap-md px-md pt-sm pb-md">
         <div className="flex items-center gap-xs">
           <Link
-            href={albumUrlFor(slug)}
+            href={partyUrls(party.id).album}
             aria-label="Back to the album"
             className="flex size-11 items-center justify-center text-ink no-underline hover:text-ink"
           >
             <ChevronLeftIcon size={22} />
           </Link>
           <div className="flex flex-col">
-            <h1 className="text-xl">{PARTY.honoree}’s party album</h1>
+            <h1 className="text-xl">{partyTitle(party)}: photos</h1>
             <p className="label">
               {photos.length} {photos.length === 1 ? "photo" : "photos"}, newest first
             </p>
           </div>
         </div>
         {album.albumUrl && (
-          <a
-            href={album.albumUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn--small self-start"
-          >
+          <a href={album.albumUrl} target="_blank" rel="noopener noreferrer" className="btn btn--small self-start">
             <ExternalIcon size={16} />
             Photographer’s album on {albumHostLabel(album.albumUrl)}
           </a>
@@ -75,13 +70,7 @@ export function AlbumFeed({ slug }: { slug: string }) {
                 className="block size-full cursor-zoom-in border-0 bg-transparent p-0"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- превью из нашего API */}
-                <img
-                  src={p.thumb}
-                  alt={SEED_ALT[p.id] ?? ""}
-                  loading="lazy"
-                  decoding="async"
-                  className="block size-full object-cover"
-                />
+                <img src={p.thumb} alt={SEED_ALT[p.id] ?? ""} loading="lazy" decoding="async" className="block size-full object-cover" />
               </button>
             </li>
           ))}
@@ -100,7 +89,7 @@ export function AlbumFeed({ slug }: { slug: string }) {
       )}
 
       {open !== null && <PhotoViewer photos={photos} index={open} onIndex={setOpen} onClose={close} />}
-      {uploading && <UploadSheet onClose={() => setUploading(false)} onUploaded={addLocal} />}
+      {uploading && <UploadSheet partyId={party.id} onClose={() => setUploading(false)} onUploaded={addLocal} />}
     </PhoneColumn>
   );
 }

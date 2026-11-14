@@ -96,5 +96,8 @@ export function albumHostLabel(url: string) {
   }
 }
 
-export const albumUrlFor = (slug: string) => `/p/${slug}/album`;
-export const albumPhotosUrlFor = (slug: string) => `/p/${slug}/album/photos`;
+/** Обложка: у демо — «семёрка» из макета, у нового события — последнее фото гостей или конфетти */
+export function albumCover(partyId: string, album: Pick<AlbumState, "photos">) {
+  if (partyId === "emma7k2q") return ALBUM_COVER;
+  return album.photos[0]?.thumb ?? "/album-seed/confetti.svg";
+}

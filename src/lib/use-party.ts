@@ -1,17 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PARTY } from "@/lib/demo";
-import { buildState, seedEventsForClient, type PartyState } from "@/lib/party-state";
+import type { PartyState } from "@/lib/party-state";
 
-const STATE_URL = `/api/party/${PARTY.id}/state`;
-
-// Живое состояние события: опрос сервера раз в intervalMs (≤ 2 с по ТЗ).
-// Опрос, а не WebSocket: проще и надёжнее за прокси Railway, 30 телефонов × 1 запрос/с — копейки.
-export function useParty(intervalMs = 1200) {
-  const [state, setState] = useState<PartyState>(() => buildState(seedEventsForClient()));
-  const [live, setLive] = useState(false);
-  const version = useRef("");
+// Живое состояние события: опрос сервера раз в intervalMs (≤ 2 с по ТЗ). Первое состояние приходит со страницы (сервер).
+// Опрос, а не WebSocket: проще и надёжнее за прокси, 30 телефонов × 1 запрос/с — копейки.
+export function useParty(partyId: string, initial: PartyState, intervalMs = 1200) {
+  const [state, setState] = useState<PartyState>(initial);
+  const [live, setLive] = useState(true);
+  const version = useRef(initial.version);
 
   const accept = useCallback((next: PartyState) => {
     setLive(true);
@@ -22,21 +19,22 @@ export function useParty(intervalMs = 1200) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch(STATE_URL, { cache: "no-store" });
+      const res = await fetch(`/api/party/${partyId}/state`, { cache: "no-store" });
       if (res.ok) accept((await res.json()) as PartyState);
       else setLive(false);
     } catch {
       setLive(false);
     }
-  }, [accept]);
+  }, [accept, partyId]);
 
   useEffect(() => {
     let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
     const tick = async () => {
       if (!document.hidden) await refresh();
       if (!stopped) timer = setTimeout(tick, intervalMs);
     };
-    let timer = setTimeout(tick, 0);
+    timer = setTimeout(tick, intervalMs);
     return () => {
       stopped = true;
       clearTimeout(timer);
@@ -48,15 +46,18 @@ export function useParty(intervalMs = 1200) {
 
 export type PostResult = { ok: true; state: PartyState } | { ok: false; error: string };
 
-export async function postPartyEvent(body: {
-  guest: string;
-  rsvp: "yes" | "no" | null;
-  amount?: number;
-  tip?: number;
-  method?: "test" | "external";
-}): Promise<PostResult> {
+export async function postPartyEvent(
+  partyId: string,
+  body: {
+    guest: string;
+    rsvp: "yes" | "no" | null;
+    amount?: number;
+    tip?: number;
+    method?: "test" | "external";
+  },
+): Promise<PostResult> {
   try {
-    const res = await fetch(`/api/party/${PARTY.id}/events`, {
+    const res = await fetch(`/api/party/${partyId}/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

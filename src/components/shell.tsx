@@ -22,7 +22,7 @@ export function Wordmark({ withMark = false, className }: { withMark?: boolean; 
 type NavKey = "parties" | "dream" | "group";
 
 const NAV: Array<{ key: NavKey; label: string; href: string }> = [
-  { key: "parties", label: "Parties", href: ROUTES.dashboard },
+  { key: "parties", label: "Parties", href: "/parties" },
   { key: "dream", label: "Dream Fund", href: ROUTES.dream },
   { key: "group", label: "Group Wallet", href: ROUTES.groupWallet },
 ];

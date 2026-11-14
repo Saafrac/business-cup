@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { PARTY } from "@/lib/demo";
+import { DEMO_PARTY } from "@/lib/party";
 import { albumStore } from "@/lib/server/album-store";
 import { NO_STORE, partyState } from "@/lib/server/party-api";
 import { store, storeKind } from "@/lib/server/store";
@@ -17,8 +17,8 @@ export async function POST(req: Request) {
   if (!keyMatches(req.headers.get("x-demo-key"))) {
     return Response.json({ error: "Forbidden" }, { status: 403, headers: NO_STORE });
   }
-  await store().reset(PARTY.id);
-  await albumStore().reset(PARTY.id);
-  const state = await partyState(PARTY.id);
+  await store().reset(DEMO_PARTY.id);
+  await albumStore().reset(DEMO_PARTY.id);
+  const state = await partyState(DEMO_PARTY);
   return Response.json({ store: storeKind(), raised: state.raisedCents / 100, contributors: state.contributors }, { headers: NO_STORE });
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CameraIcon, CheckIcon, CloseIcon, ImageIcon, RefreshIcon } from "@/components/icons";
 import type { AlbumPhoto } from "@/lib/album";
-import { prepare, readStored, uploadPhoto, writeStored } from "@/lib/use-album";
+import { prepare, readStoredGuest, uploadPhoto, writeStoredGuest } from "@/lib/use-album";
 
 type Item = {
   key: string;
@@ -19,8 +19,16 @@ const PARALLEL = 2;
 const MAX_FILES = 30;
 
 /** Шторка загрузки: имя, «снять» или «из галереи», прогресс на каждом фото, повтор упавших */
-export function UploadSheet({ onClose, onUploaded }: { onClose: () => void; onUploaded: (p: AlbumPhoto) => void }) {
-  const [name, setName] = useState(() => readStored("guest"));
+export function UploadSheet({
+  partyId,
+  onClose,
+  onUploaded,
+}: {
+  partyId: string;
+  onClose: () => void;
+  onUploaded: (p: AlbumPhoto) => void;
+}) {
+  const [name, setName] = useState(() => readStoredGuest());
   const [items, setItems] = useState<Item[]>([]);
   const [hint, setHint] = useState("");
   const camRef = useRef<HTMLInputElement>(null);
@@ -54,7 +62,7 @@ export function UploadSheet({ onClose, onUploaded }: { onClose: () => void; onUp
         patch(it.key, { status: "uploading", pct: 1, error: undefined });
         try {
           const prepared = await prepare(it.file);
-          const res = await uploadPhoto(prepared, nameValue.current.trim(), (pct) => patch(it.key, { pct }));
+          const res = await uploadPhoto(partyId, prepared, nameValue.current.trim(), (pct) => patch(it.key, { pct }));
           if (res.ok) {
             patch(it.key, { status: "done", pct: 100 });
             onUploaded(res.photo);
@@ -93,7 +101,7 @@ export function UploadSheet({ onClose, onUploaded }: { onClose: () => void; onUp
       nameRef.current?.focus();
       return;
     }
-    writeStored("guest", name.trim());
+    writeStoredGuest(name.trim());
     setHint("");
     (which === "camera" ? camRef : galRef).current?.click();
   };
@@ -146,7 +154,7 @@ export function UploadSheet({ onClose, onUploaded }: { onClose: () => void; onUp
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <span className="label">So friends know who shared. Party guests will see your photos.</span>
+          <span className="label">So friends know who shared. Guests of this event will see your photos.</span>
         </div>
 
         <div className="grid grid-cols-2 gap-sm">

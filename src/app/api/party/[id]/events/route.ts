@@ -1,10 +1,12 @@
-import { NO_STORE, knownParty, parseGuestEvent, partyState, rateLimited } from "@/lib/server/party-api";
+import { getParty } from "@/lib/server/parties";
+import { NO_STORE, parseGuestEvent, partyState, rateLimited } from "@/lib/server/party-api";
 import { TooManyEventsError, store } from "@/lib/server/store";
 
 /** Гость отвечает на RSVP и/или делает тестовый взнос. Записывает только сервер, из браузера в базу не пишем. */
 export async function POST(req: Request, ctx: RouteContext<"/api/party/[id]/events">) {
   const { id } = await ctx.params;
-  if (!knownParty(id)) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
+  const party = await getParty(id);
+  if (!party) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
   if (rateLimited(req)) return Response.json({ error: "Too many tries, wait a minute" }, { status: 429, headers: NO_STORE });
 
   let body: unknown;
@@ -21,9 +23,9 @@ export async function POST(req: Request, ctx: RouteContext<"/api/party/[id]/even
     await store().add(id, parsed.event);
   } catch (err) {
     if (err instanceof TooManyEventsError) {
-      return Response.json({ error: "The demo is full, ask the team to reset it" }, { status: 409, headers: NO_STORE });
+      return Response.json({ error: "This page is full, ask the organizer" }, { status: 409, headers: NO_STORE });
     }
     throw err;
   }
-  return Response.json(await partyState(id), { status: 201, headers: NO_STORE });
+  return Response.json(await partyState(party), { status: 201, headers: NO_STORE });
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { BikeIcon, PaletteIcon, RefreshIcon, TelescopeIcon } from "@/components/icons";
 import { Paywall } from "@/components/paywall";
 import { Wordmark, cn } from "@/components/shell";
-import { ROUTES } from "@/lib/demo";
+import { OCCASIONS, partyUrls, type Occasion } from "@/lib/party";
 
 type Step = 1 | 2 | 3;
 
@@ -17,20 +17,27 @@ const IDEAS = [
 
 const FREE_GUESTS = 15;
 
-const OCCASIONS = ["Birthday", "Wedding", "Baby shower", "Farewell", "Other"] as const;
-type Occasion = (typeof OCCASIONS)[number];
+// Дата по умолчанию — через две недели, сбор денег — за два дня до события (считается на клиенте по клику, без расхождения с SSR)
+function isoPlusDays(days: number, from = new Date()) {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export function NewPartyWizard() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [occasion, setOccasion] = useState<Occasion>("Birthday");
-  const [honoree, setHonoree] = useState("Emma");
-  const [age, setAge] = useState("7");
-  const [date, setDate] = useState("2026-12-05");
+  const [honoree, setHonoree] = useState("");
+  const [age, setAge] = useState("");
+  const [date, setDate] = useState("");
   const [time, setTime] = useState("14:00");
-  const [place, setPlace] = useState("Riverside Park");
-  const [invited, setInvited] = useState(25);
-  const [deadline, setDeadline] = useState("2026-12-03");
-  const [likes, setLikes] = useState("Rides her scooter everywhere, lives at the playground, asked for “a big-girl bike”");
+  const [place, setPlace] = useState("");
+  const [placeNote, setPlaceNote] = useState("");
+  const [invited, setInvited] = useState(15);
+  const [deadline, setDeadline] = useState("");
+  const [likes, setLikes] = useState("");
+  const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
   const [picked, setPicked] = useState(0);
   const [thinking, setThinking] = useState(false);
   const [manual, setManual] = useState(false);
@@ -46,9 +53,68 @@ export function NewPartyWizard() {
   const goalTitle = manual ? manualTitle || "Your gift" : IDEAS[picked].title;
   const goalPrice = manual ? Number(manualPrice) || 0 : IDEAS[picked].price;
 
+  const toEvent = () => {
+    if (!honoree.trim()) {
+      setError("Type a first name for who it’s for");
+      return;
+    }
+    setError("");
+    if (!date) {
+      setDate(isoPlusDays(14));
+      setDeadline(isoPlusDays(12));
+    }
+    setStep(2);
+  };
+
   const toGift = () => {
+    if (!honoree.trim()) return toEvent();
+    if (!place.trim() || !date || !deadline) {
+      setStep(2);
+      setError("Add the date, the place and the collection deadline");
+      return;
+    }
+    setError("");
     if (invited > FREE_GUESTS && !isPro) setPaywall(true);
     setStep(3);
+  };
+
+  const create = async () => {
+    if (manual && (!manualTitle.trim() || goalPrice < 5)) {
+      setError("Name the gift and set a price from $5");
+      return;
+    }
+    setError("");
+    setCreating(true);
+    try {
+      const res = await fetch("/api/parties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          occasion,
+          honoree: honoree.trim(),
+          age: isBirthday ? Number(age) || null : null,
+          gift: goalTitle,
+          goal: goalPrice,
+          date,
+          time,
+          place: place.trim(),
+          placeNote: placeNote.trim(),
+          deadline,
+          invited,
+          isPro,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+      if (!res.ok || !data.id) {
+        setError(data.error ?? "Couldn’t create the page, try again");
+        setCreating(false);
+        return;
+      }
+      router.push(partyUrls(data.id).dashboard);
+    } catch {
+      setError("No connection, try again");
+      setCreating(false);
+    }
   };
 
   const suggestAgain = () => {
@@ -71,7 +137,7 @@ export function NewPartyWizard() {
             <li key={n}>
               <button
                 type="button"
-                onClick={() => (n === 3 ? toGift() : setStep(n))}
+                onClick={() => (n === 3 ? toGift() : n === 2 ? toEvent() : setStep(n))}
                 aria-current={n === step ? "step" : undefined}
                 className={cn(
                   "flex min-h-9 items-center gap-xs rounded-pill border-0 px-sm py-xs font-bold",
@@ -105,15 +171,22 @@ export function NewPartyWizard() {
               </div>
               <div className={cn("grid gap-md", isBirthday && "sm:grid-cols-[2fr_1fr]")}>
                 <Field id="honoree" label="Who is it for? First name">
-                  <input id="honoree" className="input" value={honoree} onChange={(e) => setHonoree(e.target.value)} />
+                  <input
+                    id="honoree"
+                    className="input"
+                    maxLength={40}
+                    placeholder="For example, Emma"
+                    value={honoree}
+                    onChange={(e) => setHonoree(e.target.value)}
+                  />
                 </Field>
                 {isBirthday && (
                   <Field id="age" label="Turning">
-                    <input id="age" className="input" type="number" min={1} max={120} value={age} onChange={(e) => setAge(e.target.value)} />
+                    <input id="age" className="input" type="number" min={1} max={120} placeholder="7" value={age} onChange={(e) => setAge(e.target.value)} />
                   </Field>
                 )}
               </div>
-              <button type="button" onClick={() => setStep(2)} className="btn btn--primary self-start">
+              <button type="button" onClick={toEvent} className="btn btn--primary self-start">
                 Next: the event
               </button>
             </>
@@ -130,7 +203,24 @@ export function NewPartyWizard() {
                   <input id="time" className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
                 </Field>
                 <Field id="place" label="Place" wide>
-                  <input id="place" className="input" value={place} onChange={(e) => setPlace(e.target.value)} />
+                  <input
+                    id="place"
+                    className="input"
+                    maxLength={80}
+                    placeholder="For example, Riverside Park"
+                    value={place}
+                    onChange={(e) => setPlace(e.target.value)}
+                  />
+                </Field>
+                <Field id="place-note" label="How to find it (optional)" wide>
+                  <input
+                    id="place-note"
+                    className="input"
+                    maxLength={80}
+                    placeholder="Pavilion B, by the playground"
+                    value={placeNote}
+                    onChange={(e) => setPlaceNote(e.target.value)}
+                  />
                 </Field>
                 <Field id="invited" label="Guests invited">
                   <input
@@ -138,9 +228,9 @@ export function NewPartyWizard() {
                     className="input"
                     type="number"
                     min={1}
-                    max={60}
+                    max={200}
                     value={invited}
-                    onChange={(e) => setInvited(Math.max(1, Number(e.target.value) || 1))}
+                    onChange={(e) => setInvited(Math.min(200, Math.max(1, Number(e.target.value) || 1)))}
                   />
                 </Field>
                 <Field id="deadline" label="Collect money until">
@@ -167,7 +257,14 @@ export function NewPartyWizard() {
               <div className="flex flex-col gap-sm">
                 <div className="field">
                   <label htmlFor="likes">What is {name} into right now?</label>
-                  <textarea id="likes" className="input" rows={2} value={likes} onChange={(e) => setLikes(e.target.value)} />
+                  <textarea
+                    id="likes"
+                    className="input"
+                    rows={2}
+                    placeholder="Rides a scooter everywhere, loves the playground"
+                    value={likes}
+                    onChange={(e) => setLikes(e.target.value)}
+                  />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-sm">
                   <span className="label">
@@ -257,12 +354,10 @@ export function NewPartyWizard() {
 
         <aside className="sheet min-w-0 flex-[1_1_320px]" style={{ rotate: "1deg" }}>
           <div className="paper torn-note flex flex-col gap-md bg-signal-soft px-lg py-xl">
-            <h2 className="text-2xl">{isBirthday ? `${name} turns ${age || "?"}` : eventName}</h2>
+            <h2 className="text-2xl">{isBirthday && age ? `${name} turns ${age}` : eventName}</h2>
             <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-md gap-y-xs text-md">
               <dt className="text-ink-2">When</dt>
-              <dd className="m-0 font-extrabold">
-                {formatDay(date)}, {formatTime(time)}
-              </dd>
+              <dd className="m-0 font-extrabold">{date ? `${formatDay(date)}, ${formatTime(time)}` : "—"}</dd>
               <dt className="text-ink-2">Where</dt>
               <dd className="m-0 font-extrabold">{place || "—"}</dd>
               <dt className="text-ink-2">Invited</dt>
@@ -277,12 +372,17 @@ export function NewPartyWizard() {
               </span>
               <span className="label text-ink-2">The goal, editable until someone chips in</span>
             </div>
+            {error && (
+              <p role="alert" className="text-sm font-bold text-error">
+                {error}
+              </p>
+            )}
             {step === 3 ? (
-              <Link className="btn btn--primary btn--block" href={ROUTES.dashboard}>
-                Get the link and QR code
-              </Link>
+              <button type="button" onClick={create} disabled={creating} className="btn btn--primary btn--block">
+                {creating ? "Creating…" : "Get the link and QR code"}
+              </button>
             ) : (
-              <button type="button" onClick={() => (step === 1 ? setStep(2) : toGift())} className="btn btn--primary btn--block">
+              <button type="button" onClick={() => (step === 1 ? toEvent() : toGift())} className="btn btn--primary btn--block">
                 Continue
               </button>
             )}

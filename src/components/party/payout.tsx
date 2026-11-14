@@ -4,15 +4,20 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeftIcon } from "@/components/icons";
 import { Note, Table } from "@/components/shell";
-import { PARTY, ROUTES, usd } from "@/lib/demo";
+import { ROUTES, usd } from "@/lib/demo";
+import { giftShort, goalUsd, partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
+import type { PartyState } from "@/lib/party-state";
 import { useParty } from "@/lib/use-party";
 
 const money = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
-export function Payout({ id }: { id: string }) {
-  const { state } = useParty(2000);
-  const [giftRaw, setGift] = useState<number>(PARTY.goal);
-  const [words, setWords] = useState("I’m going to ride it to school every day");
+export function Payout({ party, initial }: { party: PartyInfo; initial: PartyState }) {
+  const { state } = useParty(party.id, initial, 2000);
+  const goal = goalUsd(party);
+  const short = giftShort(party.gift);
+  const thankers = state.guests.filter((g) => g.amountCents > 0).slice(0, 2).map((g) => g.name);
+  const [giftRaw, setGift] = useState<number>(goal);
+  const [words, setWords] = useState("It means the world to me");
   const [done, setDone] = useState<null | "buy" | "bank">(null);
 
   // делим то, что реально собрано (живые данные), подарок не больше собранного
@@ -27,9 +32,9 @@ export function Payout({ id }: { id: string }) {
   return (
     <div className="paper min-h-dvh w-full bg-paper text-ink">
       <header className="wrap flex items-center py-md">
-        <Link href={`/party/${id}`} className="flex min-h-11 items-center gap-xs font-extrabold no-underline">
+        <Link href={partyUrls(party.id).dashboard} className="flex min-h-11 items-center gap-xs font-extrabold no-underline">
           <ArrowLeftIcon size={18} />
-          {PARTY.honoree}’s party
+          {partyTitle(party)}
         </Link>
       </header>
 
@@ -48,14 +53,14 @@ export function Payout({ id }: { id: string }) {
             </h2>
             <div
               role="img"
-              aria-label={`Split: $${gift} to the ${PARTY.giftShort}, ${money(dream)} to the Dream Fund`}
+              aria-label={`Split: $${gift} to the ${short}, ${money(dream)} to the Dream Fund`}
               className="flex h-28 overflow-hidden rounded-card"
             >
               <div
                 className="paper flex min-w-[120px] flex-col justify-center bg-accent px-lg text-accent-ink"
                 style={{ flex: `${Math.max(gift, 1)} 1 0` }}
               >
-                <span className="text-sm font-extrabold">The {PARTY.giftShort}</span>
+                <span className="text-sm font-extrabold">The {short}</span>
                 <span className="num font-display text-3xl leading-none font-semibold tracking-[-0.03em]">${gift}</span>
               </div>
               <div
@@ -81,14 +86,14 @@ export function Payout({ id }: { id: string }) {
               <div className="flex justify-between text-sm font-bold text-ink-2">
                 <span>$0</span>
                 <span>
-                  {PARTY.giftShort} goal ${PARTY.goal}
+                  {short} goal ${goal}
                 </span>
                 <span>{money(COLLECTED)}</span>
               </div>
             </div>
             <div className="flex flex-wrap gap-sm">
               <button type="button" className="btn" onClick={() => setDone("buy")}>
-                {done === "buy" ? "Store link opened (demo)" : `Buy the ${PARTY.giftShort} from the store link`}
+                {done === "buy" ? "Store link opened (demo)" : `Buy the ${short} from the store link`}
               </button>
               <button type="button" className="btn" onClick={() => setDone("bank")}>
                 {done === "bank" ? `${usd(gift)} on its way (demo)` : "Move it to my bank"}
@@ -98,25 +103,21 @@ export function Payout({ id }: { id: string }) {
 
           <section aria-labelledby="notes" className="flex flex-col gap-lg">
             <h2 id="notes" className="text-2xl">
-              Thank-you notes from {PARTY.honoree}
+              Thank-you notes from {party.honoree}
             </h2>
             <div className="field">
-              <label htmlFor="thanks-words">Ask {PARTY.honoree} what to say, and type it here</label>
+              <label htmlFor="thanks-words">Ask {party.honoree} what to say, and type it here</label>
               <input id="thanks-words" className="input" type="text" value={words} onChange={(e) => setWords(e.target.value)} />
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-lg">
-              <Note bg="var(--color-signal-soft)" tilt={-1.2} className="p-lg">
-                <p className={quote}>
-                  “Dear Liam, thank you for helping with my {PARTY.giftShort}. {said}.”
-                </p>
-                <p className="pt-xs text-sm font-extrabold">To Liam</p>
-              </Note>
-              <Note bg="var(--color-mint)" tilt={1} className="p-lg">
-                <p className={quote}>
-                  “Dear Ava, thank you for my {PARTY.giftShort}! {said}. You can try it too.”
-                </p>
-                <p className="pt-xs text-sm font-extrabold">To Ava</p>
-              </Note>
+              {(thankers.length ? thankers : ["friend"]).map((name, i) => (
+                <Note key={name} bg={i % 2 ? "var(--color-mint)" : "var(--color-signal-soft)"} tilt={i % 2 ? 1 : -1.2} className="p-lg">
+                  <p className={quote}>
+                    “Dear {name}, thank you for helping with my {short}. {said}.”
+                  </p>
+                  <p className="pt-xs text-sm font-extrabold">To {name}</p>
+                </Note>
+              ))}
             </div>
           </section>
         </div>

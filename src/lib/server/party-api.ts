@@ -1,16 +1,17 @@
 import "server-only";
-import { PARTY } from "@/lib/demo";
+import { rosterFor, type PartyInfo } from "@/lib/party";
 import { buildState, canonicalGuest, type NewEvent } from "@/lib/party-state";
+import { partyExists } from "@/lib/server/parties";
 import { store } from "@/lib/server/store";
 
 export const NO_STORE = { "Cache-Control": "no-store" };
 
-export function knownParty(id: string) {
-  return id === PARTY.id;
+export async function knownParty(id: string) {
+  return partyExists(id);
 }
 
-export async function partyState(id: string) {
-  return buildState(await store().list(id));
+export async function partyState(p: Pick<PartyInfo, "id" | "invited">) {
+  return buildState(await store().list(p.id), rosterFor(p.id), p.invited);
 }
 
 type Parsed = { ok: true; event: NewEvent } | { ok: false; error: string };

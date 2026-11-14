@@ -11,14 +11,14 @@ const NAME_RE = /^[\p{L}\p{M}' .-]{1,40}$/u;
 export async function GET(_req: Request, ctx: RouteContext<"/api/party/[id]/album">) {
   await connection();
   const { id } = await ctx.params;
-  if (!knownParty(id)) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
+  if (!(await knownParty(id))) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
   return Response.json(await albumState(id), { headers: NO_STORE });
 }
 
 /** Гость добавляет фото: multipart с полным снимком (уже уменьшенным в браузере) и превью */
 export async function POST(req: Request, ctx: RouteContext<"/api/party/[id]/album">) {
   const { id } = await ctx.params;
-  if (!knownParty(id)) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
+  if (!(await knownParty(id))) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
   if (uploadLimited(req)) return Response.json({ error: "Too many uploads, wait a minute" }, { status: 429, headers: NO_STORE });
 
   let form: FormData;

@@ -1,13 +1,11 @@
 import { albumHostAllowed } from "@/lib/album";
 import { albumStore } from "@/lib/server/album-store";
-import { organizerAllowed } from "@/lib/server/organizer";
 import { NO_STORE, knownParty } from "@/lib/server/party-api";
 
 /** Организатор задаёт ссылку на внешний альбом (фотограф выложил в Google Drive и т. п.) или убирает её: { url: string | null } */
 export async function PUT(req: Request, ctx: RouteContext<"/api/party/[id]/album/link">) {
   const { id } = await ctx.params;
-  if (!knownParty(id)) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
-  if (!organizerAllowed(req)) return Response.json({ error: "Organizer code needed" }, { status: 403, headers: NO_STORE });
+  if (!(await knownParty(id))) return Response.json({ error: "Not found" }, { status: 404, headers: NO_STORE });
 
   let body: unknown;
   try {

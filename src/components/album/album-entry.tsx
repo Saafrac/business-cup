@@ -5,19 +5,20 @@ import { useState } from "react";
 import { UploadSheet } from "@/components/album/upload-sheet";
 import { CameraIcon, ExternalIcon } from "@/components/icons";
 import { Note, PhoneColumn } from "@/components/shell";
-import { ALBUM_COVER, albumHostLabel, albumPhotosUrlFor } from "@/lib/album";
-import { PARTY } from "@/lib/demo";
+import { albumCover, albumHostLabel, type AlbumState } from "@/lib/album";
+import { dayLong, mmdd, partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
 import { useAlbum } from "@/lib/use-album";
 
 /** Вход в альбом по ссылке из чата или QR: обложка, «Добавить фото», «Смотреть», внешний альбом фотографа */
-export function AlbumEntry({ slug }: { slug: string }) {
-  const { album, addLocal } = useAlbum();
+export function AlbumEntry({ party, initial }: { party: PartyInfo; initial: AlbumState }) {
+  const { album, addLocal } = useAlbum(party.id, initial);
   const [uploading, setUploading] = useState(false);
+  const urls = partyUrls(party.id);
 
   return (
     <PhoneColumn>
       <div className="flex items-center justify-between p-md">
-        <Link href={`/p/${slug}`} className="font-display text-lg font-semibold tracking-[-0.03em] text-ink no-underline hover:text-ink">
+        <Link href={urls.guest} className="font-display text-lg font-semibold tracking-[-0.03em] text-ink no-underline hover:text-ink">
           chip in
         </Link>
         <span className="text-sm font-bold text-ink-2">Photo album</span>
@@ -25,14 +26,12 @@ export function AlbumEntry({ slug }: { slug: string }) {
 
       <div className="px-md">
         <Note bg="var(--color-card)" tilt={-1} className="flex flex-col gap-md px-sm pt-sm pb-lg">
-          {/* eslint-disable-next-line @next/next/no-img-element -- обложка из public */}
-          <img src={ALBUM_COVER} alt="" className="block h-[190px] w-full rounded-stock object-cover" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- обложка: своё фото или иллюстрация из public */}
+          <img src={albumCover(party.id, album)} alt="" className="block h-[190px] w-full rounded-stock object-cover" />
           <div className="flex flex-col gap-2xs px-xs">
-            <h1 className="text-3xl">
-              {PARTY.honoree} turns {PARTY.age}
-            </h1>
+            <h1 className="text-3xl">{partyTitle(party)}</h1>
             <p className="font-bold text-ink-2">
-              {PARTY.dayLong} {PARTY.date}, {PARTY.place}
+              {dayLong(party.date)} {mmdd(party.date)}, {party.place}
             </p>
             <p className="pt-xs font-extrabold">
               <span className="figure text-xl text-accent">{album.count}</span> photos from{" "}
@@ -66,13 +65,13 @@ export function AlbumEntry({ slug }: { slug: string }) {
           <CameraIcon size={22} />
           Add photos
         </button>
-        <Link className="btn btn--block" href={albumPhotosUrlFor(slug)}>
+        <Link className="btn btn--block" href={urls.albumPhotos}>
           See album
         </Link>
-        <p className="label pt-xs text-center">Anyone with the party link can open this album.</p>
+        <p className="label pt-xs text-center">Anyone with the event link can open this album.</p>
       </div>
 
-      {uploading && <UploadSheet onClose={() => setUploading(false)} onUploaded={addLocal} />}
+      {uploading && <UploadSheet partyId={party.id} onClose={() => setUploading(false)} onUploaded={addLocal} />}
     </PhoneColumn>
   );
 }
