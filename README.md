@@ -21,8 +21,49 @@ npm run build      # прод-сборка + проверка типов
    - `DEMO_ADMIN_KEY` = любая длинная строка — ключ для сброса демо.
 4. **Settings → Networking → Generate Domain**. QR берёт адрес из открытой страницы, отдельно указывать не нужно.
 
-Сборка и запуск — `railway.json` (`npm run build`, `npm run start`, health check на `/api/party/emma7k2q/state`).
+Сборка и запуск — `railway.json` (`npm run build`, `npm run start`, health check на `/api/health`).
 Таблица `party_events` создаётся сама при первом запросе, туда же пишется засев.
+
+## Деплой на VPS с автодеплоем
+
+Сейчас работает: **http://134.209.53.12** (DigitalOcean, Ubuntu 24.04).
+
+**Как выкатывается.** Push в `main` на GitHub → Actions: линт и сборка → `git push` на сервер →
+сервер в хуке `pre-receive` собирает новый релиз рядом с работающим (`/opt/class-gift/releases/<время>-<sha>`),
+переключает ссылку `current`, перезапускает сервис и ждёт, пока `/api/health` ответит новым sha.
+Не собралось или не поднялось — остаётся прошлая версия, push отклонён, job в Actions красный.
+Хранятся последние 5 релизов.
+
+**Включить в GitHub (один раз):** Settings → Secrets and variables → Actions → New repository secret
+`DEPLOY_SSH_KEY` = содержимое приватного ключа `~/.ssh/class_gift_deploy`. На сервере этот ключ умеет только `git push`.
+Сменили сервер — переменные (вкладка Variables) `DEPLOY_HOST` и `DEPLOY_KNOWN_HOSTS` (`ssh-keyscan -t ed25519 <IP>`).
+
+**Выкатить с ноутбука без GitHub:**
+
+```bash
+git remote add deploy root@134.209.53.12:/opt/class-gift/repo.git
+git push deploy main
+```
+
+**Команды на сервере** (`ssh root@134.209.53.12`):
+
+| Команда | Что делает |
+|---|---|
+| `class-gift-rollback` | вернуть предыдущий релиз (или `class-gift-rollback <id>`) |
+| `ls -1t /opt/class-gift/releases` | список релизов |
+| `journalctl -u class-gift -f` | логи приложения |
+| `tail -f /var/log/class-gift-deploy.log` | логи деплоев |
+| `cat /etc/class-gift.env` | пароль базы и ключ сброса демо |
+
+**Новый сервер с нуля.** Ubuntu 24.04, при заказе вставить `deploy/cloud-init.yaml` в поле Cloud-init (можно и без него), затем:
+
+```bash
+ssh root@<IP> "bash -s -- '$(cat ~/.ssh/class_gift_deploy.pub)'" < deploy/server/setup.sh
+```
+
+`setup.sh` ставит Postgres, Node 22, Caddy, создаёт базу и секреты, репозиторий с хуком, скрипты релиза и отката.
+Повторный запуск безопасен. Есть домен — A-запись на IP, в `/etc/caddy/Caddyfile` заменить `:80` на домен,
+`systemctl reload caddy` → HTTPS.
 
 ## Демо на питче
 
@@ -49,6 +90,7 @@ curl -X POST https://<ваш-домен>/api/demo/reset -H "x-demo-key: <DEMO_AD
 
 | Метод | Путь | Что делает |
 |---|---|---|
+| GET | `/api/health` | какая версия (git sha) работает и какое хранилище — для проверки деплоя |
 | GET | `/api/party/emma7k2q/state` | сумма, семьи, плитки гостей, лента (экраны опрашивают раз в 1–2 с) |
 | POST | `/api/party/emma7k2q/events` | `{ kid, rsvp, amount?, tip?, method? }`, `method`: `test` или `external` (Venmo) |
 | POST | `/api/demo/reset` | сброс к засеву, заголовок `x-demo-key` |

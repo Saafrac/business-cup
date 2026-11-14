@@ -1,0 +1,26 @@
+#cloud-config
+# Class Gift: база для VPS (Ubuntu 24.04). Вставить в поле Cloud-init при заказе сервера.
+# Ставит пакеты, Node 22, подкачку и firewall. Приложение и автодеплой настраивает
+# deploy/server/setup.sh — его запускают после загрузки сервера (см. README, «Деплой на VPS»).
+
+package_update: true
+package_upgrade: true
+packages:
+  - postgresql
+  - caddy
+  - ufw
+  - git
+  - openssl
+  - curl
+
+# next build на 1–2 ГБ памяти без подкачки может упасть
+swap:
+  filename: /swapfile
+  size: 2G
+
+runcmd:
+  - snap install node --classic --channel=22
+  - ufw allow OpenSSH
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable

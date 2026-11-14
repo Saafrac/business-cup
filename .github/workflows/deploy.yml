@@ -1,0 +1,67 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# два пуша подряд не собираются параллельно: второй ждёт первый
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Lint & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx eslint src
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  deploy:
+    name: Deploy to VPS
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: http://${{ vars.DEPLOY_HOST || '134.209.53.12' }}
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || '134.209.53.12' }}
+      # отпечаток ключа сервера (ssh-keyscan -t ed25519 <IP>); сменили сервер — задайте переменную DEPLOY_KNOWN_HOSTS
+      DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS || '134.209.53.12 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJBH3v6RsjDuWBAKmaEeuGIbG2S67poNRgWSY9deXZzZ' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SSH key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::error::Add the DEPLOY_SSH_KEY secret: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # сервер собирает релиз в хуке pre-receive: не собралось или не поднялось — push отклонён, шаг красный
+      - name: Push to server (build + switch on the server)
+        run: git push --force "root@${DEPLOY_HOST}:/opt/class-gift/repo.git" "HEAD:refs/heads/main"
+
+      - name: Smoke test
+        run: |
+          curl -fsS --retry 5 --retry-delay 3 "http://${DEPLOY_HOST}/api/health" | tee health.json
+          grep -q "${GITHUB_SHA}" health.json
