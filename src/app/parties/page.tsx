@@ -33,7 +33,7 @@ async function PartiesList() {
             <p className="text-ink-2">Every gift page on Chip In. Open one to see guests, the total and the album.</p>
           </div>
           <Link className="btn btn--primary" href={ROUTES.newParty}>
-            Start a gift page
+            Create an invite
           </Link>
         </div>
 

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { MailIcon } from "@/components/icons";
 import { Note } from "@/components/shell";
-import { ROUTES } from "@/lib/demo";
 
 export function LoginForm() {
   const [email, setEmail] = useState("sarah@example.com");
@@ -21,8 +20,8 @@ export function LoginForm() {
                 We sent a sign-in link to <strong className="text-ink">{email}</strong>. It works for 15 minutes.
               </p>
             </div>
-            <Link className="btn btn--primary btn--block" href={ROUTES.dashboard}>
-              Open the demo dashboard
+            <Link className="btn btn--primary btn--block" href="/parties">
+              Open my events
             </Link>
             <button
               type="button"

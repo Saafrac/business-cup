@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./design.css";
+@import "./invite.css";
 
 /* Утилиты Tailwind поверх токенов design.css: bg-accent, text-ink-2, gap-md, text-xl, rounded-card, font-display…
    Значения живут только в design.css (:root), здесь — ссылки на них. */

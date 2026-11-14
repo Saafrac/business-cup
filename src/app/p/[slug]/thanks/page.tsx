@@ -109,7 +109,7 @@ function ThanksView({ party, state, guest, paid, how }: { party: PartyInfo; stat
         <h2 className="text-2xl">Got an event coming up, {guest}?</h2>
         <p>The same page for your event takes about two minutes. Free for up to 15 guests.</p>
         <Link className="btn btn--signal btn--block mt-xs" href={ROUTES.newParty}>
-          Start your gift page
+          Create your invite
         </Link>
       </div>
     </PhoneColumn>

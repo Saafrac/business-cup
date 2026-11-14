@@ -12,6 +12,10 @@ export type PartyEvent = {
   amountCents: number;
   tipCents: number;
   method: Method | null;
+  /** Сколько человек придёт вместе с гостем (шаг «Who’s coming»), null — не спрашивали */
+  people?: number | null;
+  /** Аллергии и пожелания (шаг «Any allergies?») */
+  note?: string | null;
   createdAt: string;
 };
 
@@ -19,7 +23,7 @@ export type NewEvent = Omit<PartyEvent, "id" | "createdAt">;
 
 export type GuestStatus = "paid" | "external" | "yes" | "no" | "open";
 
-export type Guest = { name: string; status: GuestStatus; amountCents: number };
+export type Guest = { name: string; status: GuestStatus; amountCents: number; people: number | null; note: string | null };
 
 export type FeedItem = { id: string; guest: string; text: string; amountCents: number };
 
@@ -28,6 +32,8 @@ export type PartyState = {
   contributors: number;
   invited: number;
   coming: number;
+  /** Сколько человек придёт всего: гость без ответа на «Who’s coming» считается за одного */
+  headcount: number;
   quiet: number;
   guests: Guest[];
   feed: FeedItem[];
@@ -83,18 +89,21 @@ export function eventText(e: Pick<PartyEvent, "guest" | "rsvp" | "amountCents" |
  */
 export function buildState(events: PartyEvent[], roster: readonly string[] = [], invitedBase = roster.length): PartyState {
   const sorted = [...events].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const byGuest = new Map<string, { rsvp: Rsvp | null; amount: number; external: boolean; card: boolean }>();
+  type Acc = { rsvp: Rsvp | null; amount: number; external: boolean; card: boolean; people: number | null; note: string | null };
+  const byGuest = new Map<string, Acc>();
   const order: string[] = [...roster];
   let raised = 0;
 
   for (const e of sorted) {
     const key = canonicalGuest(e.guest);
     if (!byGuest.has(key)) {
-      byGuest.set(key, { rsvp: null, amount: 0, external: false, card: false });
+      byGuest.set(key, { rsvp: null, amount: 0, external: false, card: false, people: null, note: null });
       if (!order.includes(key)) order.push(key);
     }
     const g = byGuest.get(key)!;
     if (e.rsvp) g.rsvp = e.rsvp;
+    if (e.people) g.people = e.people;
+    if (e.note) g.note = e.note;
     if (e.amountCents > 0) {
       g.amount += e.amountCents;
       raised += e.amountCents;
@@ -105,11 +114,15 @@ export function buildState(events: PartyEvent[], roster: readonly string[] = [],
 
   const guests: Guest[] = order.map((name) => {
     const g = byGuest.get(name);
-    if (!g) return { name, status: "open", amountCents: 0 };
+    if (!g) return { name, status: "open", amountCents: 0, people: null, note: null };
     const status: GuestStatus =
       g.amount > 0 ? (g.card ? "paid" : "external") : g.rsvp === "yes" ? "yes" : g.rsvp === "no" ? "no" : "open";
-    return { name, status, amountCents: g.amount };
+    return { name, status, amountCents: g.amount, people: g.people, note: g.note };
   });
+  const headcount = order.reduce((sum, name) => {
+    const g = byGuest.get(name);
+    return g?.rsvp === "yes" ? sum + (g.people ?? 1) : sum;
+  }, 0);
 
   const feed = sorted
     .slice(-6)
@@ -125,6 +138,7 @@ export function buildState(events: PartyEvent[], roster: readonly string[] = [],
     contributors: guests.filter((g) => g.amountCents > 0).length,
     invited: Math.max(invitedBase, guests.length),
     coming: guests.filter((g) => g.status !== "no" && g.status !== "open").length,
+    headcount,
     quiet: guests.filter((g) => g.status === "open").length,
     guests,
     feed,

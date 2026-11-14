@@ -54,6 +54,8 @@ export async function postPartyEvent(
     amount?: number;
     tip?: number;
     method?: "test" | "external";
+    people?: number;
+    note?: string;
   },
 ): Promise<PostResult> {
   try {

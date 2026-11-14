@@ -1,5 +1,6 @@
 // Событие (день рождения, свадьба, проводы…): общий тип и форматирование для сервера и браузера.
 import { GUESTS } from "@/lib/demo";
+import type { ThemeId } from "@/lib/invite-themes";
 
 export const OCCASIONS = ["Birthday", "Wedding", "Baby shower", "Farewell", "Other"] as const;
 export type Occasion = (typeof OCCASIONS)[number];
@@ -18,6 +19,8 @@ export type PartyInfo = {
   deadline: string; // YYYY-MM-DD
   invited: number;
   isPro: boolean;
+  /** Дизайн приглашения */
+  theme: ThemeId;
   createdAt: string;
 };
 
@@ -40,6 +43,7 @@ export const DEMO_PARTY: PartyInfo = {
   deadline: "2026-12-03",
   invited: 25,
   isPro: true,
+  theme: "dino",
   createdAt: "2026-11-14T10:00:00.000Z",
 };
 
@@ -96,6 +100,47 @@ export function inviteHeadline(p: Pick<PartyInfo, "occasion" | "honoree" | "age"
   return partyTitle(p);
 }
 
+function ordinal(n: number) {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return `${n}th`;
+  return `${n}${({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
+}
+
+/** Заголовок обложки приглашения: «You’re invited to Emma’s 7th birthday!» */
+export function inviteTitle(p: Pick<PartyInfo, "occasion" | "honoree" | "age">) {
+  const h = p.honoree;
+  switch (p.occasion) {
+    case "Birthday":
+      return p.age ? `You’re invited to ${h}’s ${ordinal(p.age)} birthday!` : `You’re invited to ${h}’s birthday!`;
+    case "Wedding":
+      return `You’re invited to ${h}’s wedding!`;
+    case "Baby shower":
+      return `You’re invited to ${h}’s baby shower!`;
+    case "Farewell":
+      return `Come say goodbye to ${h}!`;
+    default:
+      return `You’re invited to celebrate ${h}!`;
+  }
+}
+
+/** Ссылка «Add to calendar»: Google Calendar, событие на 2 часа */
+export function calendarUrl(p: Pick<PartyInfo, "occasion" | "honoree" | "age" | "date" | "time" | "place" | "placeNote">) {
+  const [h, m] = p.time.split(":").map(Number);
+  const day = p.date.replaceAll("-", "");
+  const end = Math.min(23, (h || 0) + 2);
+  const stamp = (hh: number, mm: number) => `${day}T${pad(hh)}${pad(mm)}00`;
+  const q = new URLSearchParams({
+    action: "TEMPLATE",
+    text: partyTitle(p),
+    dates: `${stamp(h || 0, m || 0)}/${stamp(end, m || 0)}`,
+    location: [p.place, p.placeNote].filter(Boolean).join(", "),
+  });
+  return `https://calendar.google.com/calendar/render?${q}`;
+}
+
+export const directionsUrl = (place: string) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
+
 /** Короткое имя подарка для фраз «Chip in for the bike» */
 export function giftShort(gift: string) {
   const g = gift.toLowerCase();
@@ -116,4 +161,5 @@ export const partyUrls = (id: string) => ({
   payout: `/party/${id}/payout`,
   qr: `/party/${id}/qr`,
   albumManage: `/party/${id}/album`,
+  design: `/party/${id}/invite`,
 });

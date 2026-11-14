@@ -72,7 +72,9 @@ function ensureSchema() {
         method text NULL,
         created_at timestamptz NOT NULL DEFAULT now()
       );
-      CREATE INDEX IF NOT EXISTS party_events_party_created ON party_events (party_id, created_at);`,
+      CREATE INDEX IF NOT EXISTS party_events_party_created ON party_events (party_id, created_at);
+      ALTER TABLE party_events ADD COLUMN IF NOT EXISTS people integer NULL;
+      ALTER TABLE party_events ADD COLUMN IF NOT EXISTS note text NULL;`,
     )
     .then(() => undefined)
     .catch((err) => {
@@ -89,6 +91,8 @@ type Row = {
   amount_cents: number;
   tip_cents: number;
   method: "card" | "external" | "test" | null;
+  people: number | null;
+  note: string | null;
   created_at: Date;
 };
 
@@ -123,14 +127,14 @@ const pgStore: Store = {
   async list(partyId) {
     await ensureSchema();
     let { rows } = await pool().query<Row>(
-      `SELECT id, kid, rsvp, amount_cents, tip_cents, method, created_at
+      `SELECT id, kid, rsvp, amount_cents, tip_cents, method, people, note, created_at
          FROM party_events WHERE party_id = $1 ORDER BY created_at LIMIT $2`,
       [partyId, MAX_EVENTS_PER_PARTY],
     );
     if (rows.length === 0 && isDemo(partyId)) {
       await insertSeed(partyId);
       ({ rows } = await pool().query<Row>(
-        `SELECT id, kid, rsvp, amount_cents, tip_cents, method, created_at
+        `SELECT id, kid, rsvp, amount_cents, tip_cents, method, people, note, created_at
            FROM party_events WHERE party_id = $1 ORDER BY created_at LIMIT $2`,
         [partyId, MAX_EVENTS_PER_PARTY],
       ));
@@ -142,6 +146,8 @@ const pgStore: Store = {
       amountCents: r.amount_cents,
       tipCents: r.tip_cents,
       method: r.method,
+      people: r.people,
+      note: r.note,
       createdAt: r.created_at.toISOString(),
     }));
   },
@@ -153,9 +159,9 @@ const pgStore: Store = {
     );
     if ((rows[0]?.n ?? 0) >= MAX_EVENTS_PER_PARTY) throw new TooManyEventsError();
     await pool().query(
-      `INSERT INTO party_events (id, party_id, kid, rsvp, amount_cents, tip_cents, method)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [randomUUID(), partyId, e.guest, e.rsvp, e.amountCents, e.tipCents, e.method],
+      `INSERT INTO party_events (id, party_id, kid, rsvp, amount_cents, tip_cents, method, people, note)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [randomUUID(), partyId, e.guest, e.rsvp, e.amountCents, e.tipCents, e.method, e.people ?? null, e.note ?? null],
     );
   },
   async reset(partyId) {

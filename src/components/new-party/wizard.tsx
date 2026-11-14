@@ -3,11 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { BikeIcon, PaletteIcon, RefreshIcon, TelescopeIcon } from "@/components/icons";
+import { PhonePreview, ThemePicker } from "@/components/invite/theme-picker";
 import { Paywall } from "@/components/paywall";
 import { Wordmark, cn } from "@/components/shell";
+import { themeOf, type ThemeId } from "@/lib/invite-themes";
 import { OCCASIONS, partyUrls, type Occasion } from "@/lib/party";
 
-type Step = 1 | 2 | 3;
+// Порядок мастера: что празднуем → когда и где → дизайн приглашения → подарок. После создания — окно «поделиться».
+type Step = 1 | 2 | 3 | 4;
 
 const IDEAS = [
   { title: "A 20-inch bike", price: 300, why: "She has outgrown the scooter and asked for one by name.", tile: "var(--color-signal)", Icon: BikeIcon },
@@ -45,6 +48,7 @@ export function NewPartyWizard() {
   const [manualPrice, setManualPrice] = useState("");
   const [isPro, setIsPro] = useState(false);
   const [paywall, setPaywall] = useState(false);
+  const [theme, setTheme] = useState<ThemeId>("classic");
 
   const name = honoree.trim() || "Guest of honor";
   const isBirthday = occasion === "Birthday";
@@ -66,17 +70,25 @@ export function NewPartyWizard() {
     setStep(2);
   };
 
-  const toGift = () => {
+  const toDesign = () => {
     if (!honoree.trim()) return toEvent();
     if (!place.trim() || !date || !deadline) {
       setStep(2);
-      setError("Add the date, the place and the collection deadline");
+      setError("Add the date, the place and the reply deadline");
       return;
     }
     setError("");
     if (invited > FREE_GUESTS && !isPro) setPaywall(true);
     setStep(3);
   };
+
+  const toGift = () => {
+    if (!honoree.trim() || !place.trim() || !date || !deadline) return toDesign();
+    setError("");
+    setStep(4);
+  };
+
+  const goTo = (n: Step) => (n === 4 ? toGift() : n === 3 ? toDesign() : n === 2 ? toEvent() : setStep(n));
 
   const create = async () => {
     if (manual && (!manualTitle.trim() || goalPrice < 5)) {
@@ -101,7 +113,8 @@ export function NewPartyWizard() {
           placeNote: placeNote.trim(),
           deadline,
           invited,
-          isPro,
+          isPro: isPro || themeOf(theme).pro,
+          theme,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
@@ -110,7 +123,7 @@ export function NewPartyWizard() {
         setCreating(false);
         return;
       }
-      router.push(partyUrls(data.id).dashboard);
+      router.push(`${partyUrls(data.id).dashboard}?share=1`);
     } catch {
       setError("No connection, try again");
       setCreating(false);
@@ -124,8 +137,9 @@ export function NewPartyWizard() {
 
   const steps: Array<[Step, string]> = [
     [1, name],
-    [2, "Event"],
-    [3, "Gift"],
+    [2, "When & where"],
+    [3, "Design"],
+    [4, "Gift"],
   ];
 
   return (
@@ -137,7 +151,7 @@ export function NewPartyWizard() {
             <li key={n}>
               <button
                 type="button"
-                onClick={() => (n === 3 ? toGift() : n === 2 ? toEvent() : setStep(n))}
+                onClick={() => goTo(n)}
                 aria-current={n === step ? "step" : undefined}
                 className={cn(
                   "flex min-h-9 items-center gap-xs rounded-pill border-0 px-sm py-xs font-bold",
@@ -155,7 +169,7 @@ export function NewPartyWizard() {
         <div className="flex min-w-0 flex-[999_1_600px] flex-col gap-xl">
           {step === 1 && (
             <>
-              <Heading title="What are we celebrating?" lead="The occasion and a first name. We keep nothing else about the person." />
+              <Heading title="What are we celebrating?" lead="Four short steps: the occasion, when and where, the invite design, and the gift guests can chip in for. Then you get one link for the group chat." />
               <div role="group" aria-label="Occasion" className="flex flex-wrap gap-xs">
                 {OCCASIONS.map((o) => (
                   <button
@@ -233,12 +247,25 @@ export function NewPartyWizard() {
                     onChange={(e) => setInvited(Math.min(200, Math.max(1, Number(e.target.value) || 1)))}
                   />
                 </Field>
-                <Field id="deadline" label="Collect money until">
+                <Field id="deadline" label="Reply and chip in by">
                   <input id="deadline" className="input" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
                 </Field>
               </div>
               {invited > FREE_GUESTS && !isPro && (
                 <p className="label">Free covers up to {FREE_GUESTS} guests. You can upgrade on the next step.</p>
+              )}
+              <button type="button" onClick={toDesign} className="btn btn--primary self-start">
+                Next: the invite design
+              </button>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <Heading title="Pick a design for the invite" lead="Guests open it from the link. You can change the design later, the link stays the same." />
+              <ThemePicker value={theme} onChange={setTheme} isPro={isPro} />
+              {themeOf(theme).pro && !isPro && (
+                <p className="label">{themeOf(theme).name} is a Party Pro design: $9.99 for this party, not charged in demo mode.</p>
               )}
               <button type="button" onClick={toGift} className="btn btn--primary self-start">
                 Next: the gift
@@ -246,7 +273,7 @@ export function NewPartyWizard() {
             </>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <>
               <Heading
                 title={`What would ${name} love?`}
@@ -266,10 +293,7 @@ export function NewPartyWizard() {
                     onChange={(e) => setLikes(e.target.value)}
                   />
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-sm">
-                  <span className="label">
-                    Only the first name, the occasion{isBirthday ? " and the age" : ""} go to the AI.
-                  </span>
+                <div className="flex flex-wrap items-center justify-end gap-sm">
                   <button type="button" onClick={suggestAgain} disabled={thinking} className="btn btn--small">
                     <RefreshIcon size={18} className={thinking ? "animate-spin" : undefined} />
                     {thinking ? "Thinking…" : "Three new ideas"}
@@ -352,6 +376,31 @@ export function NewPartyWizard() {
           )}
         </div>
 
+        {step === 3 ? (
+          <aside className="flex min-w-0 flex-[1_1_320px] flex-col items-center gap-md">
+            <PhonePreview
+              invited={invited}
+              party={{
+                occasion,
+                honoree: name,
+                age: isBirthday ? Number(age) || null : null,
+                date,
+                time,
+                place,
+                placeNote,
+                deadline,
+                gift: goalTitle,
+                goalCents: Math.max(100, goalPrice * 100),
+                theme,
+              }}
+            />
+            {error && (
+              <p role="alert" className="text-sm font-bold text-error">
+                {error}
+              </p>
+            )}
+          </aside>
+        ) : (
         <aside className="sheet min-w-0 flex-[1_1_320px]" style={{ rotate: "1deg" }}>
           <div className="paper torn-note flex flex-col gap-md bg-signal-soft px-lg py-xl">
             <h2 className="text-2xl">{isBirthday && age ? `${name} turns ${age}` : eventName}</h2>
@@ -362,13 +411,15 @@ export function NewPartyWizard() {
               <dd className="m-0 font-extrabold">{place || "—"}</dd>
               <dt className="text-ink-2">Invited</dt>
               <dd className="m-0 font-extrabold">{invited} guests</dd>
-              <dt className="text-ink-2">Collect until</dt>
+              <dt className="text-ink-2">Reply by</dt>
               <dd className="m-0 font-extrabold">{formatUs(deadline)}</dd>
+              <dt className="text-ink-2">Design</dt>
+              <dd className="m-0 font-extrabold">{themeOf(theme).name}</dd>
             </dl>
             <div className="flex flex-col gap-2xs border-t-2 border-dashed border-signal-deep pt-md">
-              <span className="font-extrabold">{step === 3 ? goalTitle : "The gift comes next"}</span>
+              <span className="font-extrabold">{step === 4 ? goalTitle : "The gift comes last"}</span>
               <span className="num font-display text-3xl leading-[1.05] font-semibold tracking-[-0.03em]">
-                {step === 3 ? `$${goalPrice}` : "—"}
+                {step === 4 ? `$${goalPrice}` : "—"}
               </span>
               <span className="label text-ink-2">The goal, editable until someone chips in</span>
             </div>
@@ -377,17 +428,18 @@ export function NewPartyWizard() {
                 {error}
               </p>
             )}
-            {step === 3 ? (
+            {step === 4 ? (
               <button type="button" onClick={create} disabled={creating} className="btn btn--primary btn--block">
-                {creating ? "Creating…" : "Get the link and QR code"}
+                {creating ? "Creating…" : "Create the invite"}
               </button>
             ) : (
-              <button type="button" onClick={() => (step === 1 ? toEvent() : toGift())} className="btn btn--primary btn--block">
+              <button type="button" onClick={() => goTo((step + 1) as Step)} className="btn btn--primary btn--block">
                 Continue
               </button>
             )}
           </div>
         </aside>
+        )}
       </div>
 
       <Paywall

@@ -15,7 +15,7 @@ export default function NotFound() {
               See all parties
             </Link>
             <Link className="btn" href={ROUTES.newParty}>
-              Start a gift page
+              Create an invite
             </Link>
           </div>
         </Note>

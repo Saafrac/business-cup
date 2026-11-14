@@ -1,0 +1,29 @@
+/* Темы приглашения из макета (Party Invite): тема меняет только декор — обложку, узор, акцент значков.
+   Текст и главные кнопки акцент темы не берут. Картинки — public/invite/{cover,pattern}/<тема>.svg */
+@layer components {
+  [data-invite-theme] { --theme-cover-ink: var(--color-ink); --theme-cover-muted: var(--color-ink-2); }
+  [data-invite-theme="classic"] { --theme-accent: #5B42DC; --theme-soft: #E6E2FA; --theme-cover: #F5F3FF; --theme-pattern: url("/invite/pattern/classic.svg"); }
+  [data-invite-theme="dino"] { --theme-accent: #2FBF71; --theme-soft: #D5F5E3; --theme-cover: #EAFBF1; --theme-pattern: url("/invite/pattern/dino.svg"); }
+  [data-invite-theme="space"] { --theme-accent: #6A5FE0; --theme-soft: #E6E2FA; --theme-cover: #130A51; --theme-cover-ink: #F5F3FF; --theme-cover-muted: #C9C3F0; --theme-pattern: url("/invite/pattern/space.svg"); }
+  [data-invite-theme="unicorn"] { --theme-accent: #F28CC6; --theme-soft: #FBD9EC; --theme-cover: #FDEFF7; --theme-pattern: url("/invite/pattern/unicorn.svg"); }
+  [data-invite-theme="game"] { --theme-accent: #FF8A3D; --theme-soft: #FFE0CC; --theme-cover: #FFF3EA; --theme-pattern: url("/invite/pattern/game.svg"); }
+  [data-invite-theme="sea"] { --theme-accent: #22B8CF; --theme-soft: #CFF3F8; --theme-cover: #E8F9FC; --theme-pattern: url("/invite/pattern/sea.svg"); }
+  [data-invite-theme="art"] { --theme-accent: #FFC233; --theme-soft: #FFEBB3; --theme-cover: #FFF8E5; --theme-pattern: url("/invite/pattern/art.svg"); }
+
+  .invite-page { background-color: var(--color-paper); background-image: var(--theme-pattern), var(--grain); }
+  .invite-cover { background-color: var(--theme-cover); color: var(--theme-cover-ink); }
+  .invite-block { background-color: var(--color-card); border-radius: var(--radius-card); padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); box-shadow: inset 0 0 0 1.5px var(--color-rule); }
+  .invite-icon { width: 44px; height: 44px; flex-shrink: 0; border-radius: var(--radius-stock); background-color: var(--theme-soft); color: var(--color-ink); display: flex; align-items: center; justify-content: center; }
+  .invite-swatch { background: linear-gradient(135deg, var(--theme-cover) 50%, var(--theme-accent) 50%); box-shadow: inset 0 0 0 2px var(--color-ink); }
+  .pixel { position: absolute; width: 12px; height: 12px; background-color: var(--theme-accent); }
+  .confetti { animation: cg-fall 1600ms var(--ease-out) both; }
+  .steps-dots { display: flex; gap: var(--space-xs); }
+  .steps-dots i { width: 10px; height: 10px; border-radius: var(--radius-pill); background-color: var(--color-edge); transition: width var(--dur-short) var(--ease-snap); }
+  .steps-dots i[data-on="true"] { width: 28px; background-color: var(--color-accent); }
+}
+@keyframes cg-fall { from { opacity: 0; translate: 0 -120px; rotate: -90deg; } 60% { opacity: 1; } to { opacity: 1; translate: 0 0; rotate: 0deg; } }
+@media (prefers-reduced-motion: reduce) { .confetti { animation: none; } .steps-dots i { transition: none; } }
+@layer components {
+  .link-btn { min-height: 44px; align-self: center; border: 0; background: none; padding: 0 var(--space-xs); font-weight: 800; color: var(--color-accent-deep); cursor: pointer; text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 0.18em; }
+  .link-btn:disabled { opacity: 0.6; cursor: default; }
+}

@@ -1,5 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
+import { DEFAULT_THEME, isThemeId, type ThemeId } from "@/lib/invite-themes";
 import { DEMO_PARTY, OCCASIONS, isDemo, type NewParty, type Occasion, type PartyInfo } from "@/lib/party";
 import { pool } from "@/lib/server/store";
 
@@ -38,7 +39,8 @@ function ensureSchema() {
         is_pro boolean NOT NULL DEFAULT false,
         created_at timestamptz NOT NULL DEFAULT now()
       );
-      CREATE INDEX IF NOT EXISTS parties_created ON parties (created_at DESC);`,
+      CREATE INDEX IF NOT EXISTS parties_created ON parties (created_at DESC);
+      ALTER TABLE parties ADD COLUMN IF NOT EXISTS theme text NOT NULL DEFAULT 'classic';`,
     )
     .then(() => undefined)
     .catch((err) => {
@@ -62,6 +64,7 @@ type Row = {
   deadline: string;
   invited: number;
   is_pro: boolean;
+  theme: string;
   created_at: Date;
 };
 
@@ -79,14 +82,19 @@ const fromRow = (r: Row): PartyInfo => ({
   deadline: r.deadline,
   invited: r.invited,
   isPro: r.is_pro,
+  theme: isThemeId(r.theme) ? r.theme : DEFAULT_THEME,
   createdAt: r.created_at.toISOString(),
 });
 
 const hasDb = () => Boolean(process.env.DATABASE_URL);
 const ID_RE = /^[a-z0-9]{4,16}$/;
 
+// Тему демо можно поменять на питче: живёт в памяти процесса, в базу демо не пишется
+const demoTheme = globalThis as unknown as { __cgDemoTheme?: ThemeId };
+const demoParty = (): PartyInfo => ({ ...DEMO_PARTY, theme: demoTheme.__cgDemoTheme ?? DEMO_PARTY.theme });
+
 export async function getParty(id: string): Promise<PartyInfo | null> {
-  if (isDemo(id)) return DEMO_PARTY;
+  if (isDemo(id)) return demoParty();
   if (!ID_RE.test(id)) return null;
   if (!hasDb()) return memMap().get(id) ?? null;
   await ensureSchema();
@@ -108,7 +116,7 @@ export async function recentParties(limit = 50): Promise<PartyInfo[]> {
     const { rows } = await pool().query<Row>("SELECT * FROM parties ORDER BY created_at DESC LIMIT $1", [limit]);
     list = rows.map(fromRow);
   }
-  return [DEMO_PARTY, ...list];
+  return [demoParty(), ...list];
 }
 
 export async function createParty(p: NewParty): Promise<PartyInfo> {
@@ -124,14 +132,36 @@ export async function createParty(p: NewParty): Promise<PartyInfo> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const id = newId();
     const { rows } = await pool().query<Row>(
-      `INSERT INTO parties (id, occasion, honoree, age, gift, goal_cents, date, time, place, place_note, deadline, invited, is_pro)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `INSERT INTO parties (id, occasion, honoree, age, gift, goal_cents, date, time, place, place_note, deadline, invited, is_pro, theme)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        ON CONFLICT (id) DO NOTHING RETURNING *`,
-      [id, p.occasion, p.honoree, p.age, p.gift, p.goalCents, p.date, p.time, p.place, p.placeNote, p.deadline, p.invited, p.isPro],
+      [id, p.occasion, p.honoree, p.age, p.gift, p.goalCents, p.date, p.time, p.place, p.placeNote, p.deadline, p.invited, p.isPro, p.theme],
     );
     if (rows[0]) return fromRow(rows[0]);
   }
   throw new Error("Could not allocate a party id");
+}
+
+/** Сменить дизайн приглашения. Pro-тема делает событие Pro (в демо оплата не списывается) */
+export async function setPartyTheme(id: string, theme: ThemeId, pro: boolean): Promise<PartyInfo | null> {
+  if (isDemo(id)) {
+    demoTheme.__cgDemoTheme = theme;
+    return demoParty();
+  }
+  if (!ID_RE.test(id)) return null;
+  if (!hasDb()) {
+    const p = memMap().get(id);
+    if (!p) return null;
+    const next = { ...p, theme, isPro: p.isPro || pro };
+    memMap().set(id, next);
+    return next;
+  }
+  await ensureSchema();
+  const { rows } = await pool().query<Row>(
+    "UPDATE parties SET theme = $2, is_pro = is_pro OR $3 WHERE id = $1 RETURNING *",
+    [id, theme, pro],
+  );
+  return rows[0] ? fromRow(rows[0]) : null;
 }
 
 type Parsed = { ok: true; party: NewParty } | { ok: false; error: string };
@@ -192,6 +222,7 @@ export function parseNewParty(body: unknown): Parsed {
       deadline,
       invited,
       isPro: b.isPro === true,
+      theme: isThemeId(b.theme) ? b.theme : DEFAULT_THEME,
     },
   };
 }

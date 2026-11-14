@@ -46,12 +46,10 @@ export default function Landing() {
           </p>
           <div className="flex flex-wrap gap-sm pt-xs">
             <Link className="btn btn--primary" href={ROUTES.newParty}>
-              Start a gift
-            </Link>
-            <Link className="btn" href={ROUTES.groupWallet}>
-              I run a group
+              Create an invite
             </Link>
           </div>
+          <p className="label">Pick a design, add the gift, send one link. About two minutes.</p>
         </div>
         <HeroDemo />
       </section>
@@ -121,9 +119,6 @@ export default function Landing() {
                   </span>
                 ))}
               </div>
-              <Link className="btn btn--signal self-start" href={ROUTES.groupWallet}>
-                Publish and share
-              </Link>
             </div>
           </div>
 
@@ -163,9 +158,6 @@ export default function Landing() {
             <p className="lead">
               Grandparents and aunts open one link all year, add money with a line for Emma, and watch the jar fill.
             </p>
-            <Link href={ROUTES.dream} className="inline-flex min-h-11 items-center self-start font-extrabold">
-              See Emma’s Dream Fund
-            </Link>
           </div>
           <div className="flex min-w-0 flex-[1_1_420px] items-end justify-center gap-lg">
             <div
@@ -233,10 +225,7 @@ export default function Landing() {
             <h2 className="max-w-[14ch] flex-[1_1_460px]">What are you celebrating next?</h2>
             <div className="flex flex-wrap gap-sm">
               <Link className="btn btn--signal" href={ROUTES.newParty}>
-                Start a gift
-              </Link>
-              <Link className="btn" href={ROUTES.groupWallet}>
-                Set up my group
+                Create an invite
               </Link>
             </div>
           </div>

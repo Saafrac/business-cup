@@ -19,12 +19,12 @@ export function Wordmark({ withMark = false, className }: { withMark?: boolean; 
   );
 }
 
-type NavKey = "parties" | "dream" | "group";
+// «group» остался только у макета Group Wallet: в меню его нет, как и Dream Fund — это демо-экраны без живых данных
+type NavKey = "parties" | "new" | "group";
 
 const NAV: Array<{ key: NavKey; label: string; href: string }> = [
-  { key: "parties", label: "Parties", href: "/parties" },
-  { key: "dream", label: "Dream Fund", href: ROUTES.dream },
-  { key: "group", label: "Group Wallet", href: ROUTES.groupWallet },
+  { key: "parties", label: "My events", href: "/parties" },
+  { key: "new", label: "New invite", href: ROUTES.newParty },
 ];
 
 /** Шапка кабинета организатора события и группы */

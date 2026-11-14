@@ -21,7 +21,13 @@ Next.js 16 (App Router, Cache Components), React 19, TypeScript, Tailwind 4, Pos
   фотографа (только известные хостинги: Google Photos/Drive, Dropbox, iCloud…), удаляет фото. Фото — в Postgres (`album_photos`, bytea),
   ссылка — `party_settings`. Удаление фото и ссылка открыты всем, как и весь кабинет организатора.
   12 демо-фото (SVG из макета) — `public/album-seed`, только у демо, в базу не пишутся. Сброс демо очищает и альбом.
-- **Макет на демо-данных**: лендинг, вход, идеи AI Dream Finder и paywall в мастере, Group Wallet, Dream Fund.
+- **Живое: дизайн приглашения** (макет «Party Invite»). Мастер: что празднуем → когда и где → дизайн → подарок → окно «поделиться»
+  (`?share=1` на дашборде). 7 тем (`src/lib/invite-themes.ts`, цвета `src/app/invite.css`, картинки `public/invite/`), 4 из них Pro.
+  Тема — колонка `parties.theme`, меняется на `/party/[id]/invite` (`PUT /api/party/[id]/theme`), у демо — в памяти процесса.
+  Гость: приглашение `components/invite/invite-view.tsx` → шаги `rsvp-flow.tsx` (имя → сколько придут → аллергии → взнос → готово),
+  один POST в конце; число людей и аллергии — колонки `party_events.people`/`note`, на дашборде «N people» и «Allergies and notes».
+- **Макет на демо-данных**: лендинг, вход, идеи AI Dream Finder и paywall в мастере. Group Wallet и Dream Fund — страницы остались,
+  но ссылок на них в интерфейсе нет (убраны как демо). «Use the money» (`/party/[id]/payout`) — без раздела в Dream Fund.
 - Демо — встроенное событие `emma7k2q` (`DEMO_PARTY`, в базу не пишется): засев $210, 14 из 25 гостей и 12 фото есть только у него.
   У нового события гостей нет, пока кто-то не ответит.
 

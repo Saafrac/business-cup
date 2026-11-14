@@ -19,6 +19,8 @@ type Parsed = { ok: true; event: NewEvent } | { ok: false; error: string };
 const NAME_RE = /^[\p{L}\p{M}' .-]{1,40}$/u;
 const MIN_USD = 5;
 const MAX_USD = 500;
+const MAX_PEOPLE = 20;
+const MAX_NOTE = 140;
 
 /** Проверка тела запроса от гостя: имя, RSVP, сумма в долларах, чаевые, способ */
 export function parseGuestEvent(body: unknown): Parsed {
@@ -43,9 +45,23 @@ export function parseGuestEvent(body: unknown): Parsed {
   if (amount > 0 && !method) return { ok: false, error: "Pick how you paid" };
   if (amount === 0 && !rsvp) return { ok: false, error: "Nothing to save" };
 
+  // ответы шагов RSVP: сколько человек придёт и аллергии — только вместе с «приду»
+  const peopleNum = Number(b.people);
+  const people = rsvp === "yes" && Number.isInteger(peopleNum) && peopleNum >= 1 && peopleNum <= MAX_PEOPLE ? peopleNum : null;
+  const note =
+    rsvp === "yes" && typeof b.note === "string" ? b.note.replace(/[\u0000-\u001f\u007f]/g, " ").trim().replace(/\s+/g, " ").slice(0, MAX_NOTE) || null : null;
+
   return {
     ok: true,
-    event: { guest: canonicalGuest(guest), rsvp, amountCents: amount, tipCents: amount > 0 ? tip : 0, method: amount > 0 ? method : null },
+    event: {
+      guest: canonicalGuest(guest),
+      rsvp,
+      amountCents: amount,
+      tipCents: amount > 0 ? tip : 0,
+      method: amount > 0 ? method : null,
+      people,
+      note,
+    },
   };
 }
 

@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { CopyIcon, QrIcon } from "@/components/icons";
+import { ShareDialog } from "@/components/party/share-dialog";
 import { AppHeader, Bar, Key, NameTag, Note, SWATCH, type TagKind } from "@/components/shell";
 import { TILT } from "@/lib/demo";
+import { themeOf } from "@/lib/invite-themes";
 import { dayShort, giftShort, goalUsd, mmdd, partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
 import { usdShort, type GuestStatus, type PartyState } from "@/lib/party-state";
 import { useOrigin } from "@/lib/use-demo";
@@ -34,6 +37,9 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
   const [editing, setEditing] = useState(false);
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
+  const [share, setShare] = useState(useSearchParams().get("share") === "1");
+  const notes = state.guests.filter((g) => g.note && g.status !== "no" && g.status !== "open");
 
   const quiet = state.guests.filter((g) => g.status === "open").slice(0, 3).map((g) => g.name);
   const nudge =
@@ -88,11 +94,14 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
               <QrIcon size={18} />
               QR for a screen
             </Link>
+            <Link className="btn" href={urls.design}>
+              Invite design: {themeOf(party.theme).name}
+            </Link>
             <Link className="btn" href={urls.albumManage}>
               Photo album
             </Link>
             <Link className="btn btn--signal" href={urls.payout}>
-              Split the money
+              Use the money
             </Link>
           </div>
         </section>
@@ -113,7 +122,8 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
                 Guests
               </h2>
               <p className="font-bold text-ink-2">
-                {state.coming} coming, {state.contributors} chipped in, {state.quiet} quiet
+                {state.coming} coming ({state.headcount} {state.headcount === 1 ? "person" : "people"}), {state.contributors} chipped in,{" "}
+                {state.quiet} quiet
               </p>
             </div>
             {state.guests.length === 0 && (
@@ -153,6 +163,26 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
               </table>
               <p className="label">Guests never see each other’s amounts, only the total.</p>
             </section>
+
+            {notes.length > 0 && (
+              <section aria-labelledby="food" className="flex flex-col gap-sm">
+                <h2 id="food" className="text-xl">
+                  Allergies and notes
+                </h2>
+                <table aria-label="Allergies and notes from guests" className="border-collapse text-md">
+                  <tbody>
+                    {notes.map((g) => (
+                      <tr key={g.name} className="border-t border-edge">
+                        <th scope="row" className="py-sm pr-md text-left align-top font-extrabold">
+                          {g.name}
+                        </th>
+                        <td className="py-sm break-words">{g.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
 
             {quiet.length > 0 && (
               <section aria-labelledby="nudge" className="flex flex-col gap-md">
@@ -202,6 +232,16 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
           </aside>
         </div>
       </div>
+
+      <ShareDialog
+        party={party}
+        link={link}
+        open={share}
+        onClose={() => {
+          setShare(false);
+          router.replace(urls.dashboard, { scroll: false });
+        }}
+      />
     </div>
   );
 }
