@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { PARTY } from "@/lib/demo";
+import { albumStore } from "@/lib/server/album-store";
 import { NO_STORE, partyState } from "@/lib/server/party-api";
 import { store, storeKind } from "@/lib/server/store";
 
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403, headers: NO_STORE });
   }
   await store().reset(PARTY.id);
+  await albumStore().reset(PARTY.id);
   const state = await partyState(PARTY.id);
   return Response.json({ store: storeKind(), raised: state.raisedCents / 100, contributors: state.contributors }, { headers: NO_STORE });
 }

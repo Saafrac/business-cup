@@ -116,3 +116,67 @@ export const MailIcon = (p: IconProps) => (
     <path d="M3 7l9 6 9-6" />
   </Icon>
 );
+
+export const CameraIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </Icon>
+);
+
+export const ImageIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <circle cx="9" cy="10" r="2" />
+    <path d="M21 16l-5-5-9 9" />
+  </Icon>
+);
+
+export const DownloadIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 4v12" />
+    <path d="M7 11l5 5 5-5" />
+    <path d="M5 20h14" />
+  </Icon>
+);
+
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Icon strokeWidth={2.6} {...p}>
+    <path d="M15 6l-6 6 6 6" />
+  </Icon>
+);
+
+export const ChevronRightIcon = (p: IconProps) => (
+  <Icon strokeWidth={2.6} {...p}>
+    <path d="M9 6l6 6-6 6" />
+  </Icon>
+);
+
+export const PlusIcon = (p: IconProps) => (
+  <Icon strokeWidth={2.8} {...p}>
+    <path d="M12 5v14" />
+    <path d="M5 12h14" />
+  </Icon>
+);
+
+export const ExternalIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14 4h6v6" />
+    <path d="M20 4l-9 9" />
+    <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </Icon>
+);
+
+export const TrashIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 7h16" />
+    <path d="M9 7V4h6v3" />
+    <path d="M6 7l1 13h10l1-13" />
+  </Icon>
+);
+
+export const CheckIcon = (p: IconProps) => (
+  <Icon strokeWidth={3} {...p}>
+    <path d="M20 6L9 17l-5-5" />
+  </Icon>
+);

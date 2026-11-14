@@ -84,6 +84,9 @@ export function Dashboard({ id }: { id: string }) {
               <QrIcon size={18} />
               QR for a screen
             </Link>
+            <Link className="btn" href={`/party/${id}/album`}>
+              Photo album
+            </Link>
             <Link className="btn btn--signal" href={`/party/${id}/payout`}>
               Split the money
             </Link>

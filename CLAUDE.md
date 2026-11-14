@@ -12,6 +12,11 @@ Next.js 16 (App Router, Cache Components), React 19, TypeScript, Tailwind 4, Pos
 
 - **Живое** (бэк + Postgres): страница гостя → Test payment / Venmo / RSVP → сумма растёт на QR-экране,
   дашборде, «Спасибо», распределении. Опрос сервера раз в 1–2 с, не WebSocket.
+- **Живое: фотоальбом события** — гость по ссылке `/p/[slug]/album` добавляет фото (ужимаются в браузере до 2048 px + превью 480 px),
+  лента `/p/[slug]/album/photos` с полноэкранным просмотром; организатор `/party/[id]/album` задаёт ссылку на внешний альбом
+  фотографа (только известные хостинги: Google Photos/Drive, Dropbox, iCloud…), удаляет фото. Фото — в Postgres (`album_photos`, bytea),
+  ссылка — `party_settings`. Действия организатора закрыты `DEMO_ADMIN_KEY` (заголовок `x-demo-key`), без ключа — открыты (локально).
+  12 демо-фото (SVG из макета) — `public/album-seed`, в базу не пишутся. Сброс демо очищает и альбом.
 - **Макет на демо-данных**: лендинг, вход, мастер создания события (выбор повода) + paywall, Group Wallet, Dream Fund.
 - Демо — один праздник `emma7k2q` («Emma turns 7», велосипед за $300). Старт с засева: $210, 14 из 25 семей.
 
@@ -25,6 +30,9 @@ Next.js 16 (App Router, Cache Components), React 19, TypeScript, Tailwind 4, Pos
 | `src/lib/party-state.ts` | события → состояние события (гости, взносы), засев; общий для сервера и браузера |
 | `src/lib/server/` | `store.ts` (Postgres при `DATABASE_URL`, иначе память; колонка гостя в таблице по-прежнему `kid`, в коде — `guest`), `party-api.ts` (валидация, лимит частоты) |
 | `src/lib/use-party.ts` | хук опроса состояния + отправка взноса |
+| `src/lib/album.ts`, `src/lib/use-album.ts`, `src/lib/server/album-store.ts` | альбом: типы и демо-фото, хук + сжатие и загрузка в браузере, хранилище |
+| `src/components/album/` | `album-entry` (вход), `album-feed` (сетка), `photo-viewer`, `upload-sheet`, `album-manage` (организатор) |
+| `src/app/api/party/[id]/album/` | GET альбом / POST фото (multipart), `[photoId]` GET картинка (`?size=thumb`, `?download=1`) / DELETE, `link` PUT ссылка |
 | `src/lib/demo.ts` | константы демо-истории Emma, маршруты, список гостей `GUESTS`, группа `GROUP` |
 | `src/app/design.css` | дизайн-система из макета (claude.ai Design): токены, `.btn`, `.choice`, `.field`/`.input`, `.paper`, `.torn*`, `.wrap` (= `.container` макета) |
 | `src/app/globals.css` | связка токенов с Tailwind: `bg-accent`, `gap-md`, `text-xl`, `rounded-card`… |

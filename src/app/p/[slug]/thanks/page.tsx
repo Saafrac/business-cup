@@ -86,6 +86,21 @@ function ThanksView({ slug, guest, paid, how }: { slug: string; guest: string; p
 
       <LiveProgress />
 
+      <div className="px-md pt-xl">
+        <Link
+          href={`/p/${slug}/album`}
+          className="flex items-center justify-between gap-md rounded-card border-[1.5px] border-edge bg-card p-md text-ink no-underline hover:text-ink"
+        >
+          <span className="flex flex-col">
+            <span className="font-extrabold">Photos from the party</span>
+            <span className="text-sm text-ink-2">See them and add yours, no account needed</span>
+          </span>
+          <span aria-hidden="true" className="text-xl font-extrabold text-accent">
+            →
+          </span>
+        </Link>
+      </div>
+
       <div className="paper torn-top on-accent mt-auto flex flex-col gap-sm bg-accent px-md pt-2xl pb-lg text-accent-ink max-sm:mt-2xl">
         <h2 className="text-2xl">Got an event coming up, {guest}?</h2>
         <p>The same page for your event takes about two minutes. Free for up to 15 guests.</p>

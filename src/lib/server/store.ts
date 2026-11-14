@@ -46,7 +46,8 @@ const memoryStore: Store = {
 
 const pgGlobal = globalThis as unknown as { __cgPool?: Pool; __cgSchema?: Promise<void> };
 
-function pool() {
+/** Общий пул Postgres (им же пользуется альбом) */
+export function pool() {
   pgGlobal.__cgPool ??= new Pool({
     connectionString: process.env.DATABASE_URL,
     max: 5,
