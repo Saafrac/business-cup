@@ -14,20 +14,20 @@ export function Wordmark({ withMark = false, className }: { withMark?: boolean; 
       className={cn("flex min-h-11 items-center gap-xs text-ink no-underline hover:text-ink", className)}
     >
       {withMark && <GiftIcon size={30} strokeWidth={2} className="text-accent" />}
-      <span className="font-display text-xl font-semibold tracking-[-0.03em]">class gift</span>
+      <span className="font-display text-xl font-semibold tracking-[-0.03em]">chip in</span>
     </Link>
   );
 }
 
-type NavKey = "parties" | "dream" | "class";
+type NavKey = "parties" | "dream" | "group";
 
 const NAV: Array<{ key: NavKey; label: string; href: string }> = [
   { key: "parties", label: "Parties", href: ROUTES.dashboard },
   { key: "dream", label: "Dream Fund", href: ROUTES.dream },
-  { key: "class", label: "Class Wallet", href: ROUTES.classWallet },
+  { key: "group", label: "Group Wallet", href: ROUTES.groupWallet },
 ];
 
-/** Шапка кабинета организатора и room parent */
+/** Шапка кабинета организатора события и группы */
 export function AppHeader({
   active,
   avatar,

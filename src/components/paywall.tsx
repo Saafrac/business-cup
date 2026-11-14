@@ -7,13 +7,13 @@ import { CloseIcon } from "@/components/icons";
 export function Paywall({
   open,
   invited,
-  child,
+  honoree,
   onUpgrade,
   onClose,
 }: {
   open: boolean;
   invited: number;
-  child: string;
+  honoree: string;
   onUpgrade: () => void;
   onClose: () => void;
 }) {
@@ -49,9 +49,9 @@ export function Paywall({
 
           <div className="flex flex-col gap-sm pr-2xl">
             <h1 id="pw-title" className="max-w-[20ch] text-3xl">
-              {invited} kids are invited. Free covers 15.
+              {invited} guests are invited. Free covers 15.
             </h1>
-            <p className="lead">Party Pro opens this party to the whole class for $9.99, once.</p>
+            <p className="lead">Party Pro opens this party to every guest for $9.99, once.</p>
           </div>
 
           <div className="grid gap-xl border-t-2 border-ink pt-lg md:grid-cols-2">
@@ -64,26 +64,26 @@ export function Paywall({
                 <span className="label">for this party</span>
               </p>
               <p className="text-ink-2">
-                All {invited} kids, reminders that send themselves, a thank-you from {child} to every family.
+                All {invited} guests, reminders that send themselves, a thank-you from {honoree} to everyone who chipped in.
               </p>
               <button type="button" onClick={onUpgrade} className="btn btn--primary mt-auto self-start">
                 Upgrade this party
               </button>
             </section>
             <section
-              aria-labelledby="cw"
+              aria-labelledby="gw"
               className="flex flex-col gap-sm md:border-l md:border-edge md:pl-xl max-md:border-t max-md:border-edge max-md:pt-lg"
             >
-              <h2 id="cw" className="text-xl">
-                Class Wallet
+              <h2 id="gw" className="text-xl">
+                Group Wallet
               </h2>
               <p>
                 <span className="num font-display text-3xl font-semibold tracking-[-0.03em]">$49</span>{" "}
-                <span className="label">a school year</span>
+                <span className="label">a year</span>
               </p>
-              <p className="text-ink-2">For room parents: every class collection, the paid roster, a year-end report.</p>
+              <p className="text-ink-2">For group organizers (a class, a team, an office, a club): every collection, the paid roster, a year-end report.</p>
               <button type="button" onClick={onUpgrade} className="btn mt-auto self-start">
-                Get Class Wallet
+                Get Group Wallet
               </button>
             </section>
           </div>

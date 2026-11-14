@@ -13,7 +13,7 @@ const MESSAGES = [
 ];
 const LAST = TOTALS.length - 1;
 
-/** Чат родителей класса: ссылка на подарок наполняется вживую */
+/** Групповой чат гостей: ссылка на подарок наполняется вживую (пример — день рождения) */
 export function HeroDemo() {
   const step = useDemoStep(LAST, 1600);
   const total = TOTALS[step];
@@ -48,7 +48,7 @@ export function HeroDemo() {
             className="enter flex w-[86%] flex-col gap-xs self-end rounded-2xl bg-card p-sm shadow-[inset_0_0_0_1.5px_var(--color-paper-3)]"
             style={{ animationDelay: "420ms" }}
           >
-            <span className="text-xs font-bold text-muted">classgift.app</span>
+            <span className="text-xs font-bold text-muted">chipin.app</span>
             <span className="font-display text-lg leading-[1.1] font-semibold tracking-[-0.02em]">A bike for Emma</span>
             <Bar ratio={total / 300} label={`$${total} raised of $300`} />
             <span className="text-sm font-extrabold">

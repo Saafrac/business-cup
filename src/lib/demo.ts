@@ -1,10 +1,10 @@
-// Демо-данные: одна история «Emma turns 7» на все экраны.
+// Демо-данные: одна история «Emma turns 7» на все экраны — пример события, продукт не только про дни рождения.
 // Когда появится Supabase, эти константы заменятся запросами.
 
 export const PARTY = {
   id: "emma7k2q",
   slug: "emma7k2q",
-  child: "Emma",
+  honoree: "Emma",
   age: 7,
   day: "SAT",
   dayLong: "Saturday",
@@ -29,7 +29,7 @@ export const DREAM = {
   balance: 120,
 } as const;
 
-export const CLASS = {
+export const GROUP = {
   id: "carter-2",
   name: "Mrs. Carter's 2nd grade",
   year: "2026–27",
@@ -44,11 +44,11 @@ export const ROUTES = {
   dashboard: `/party/${PARTY.id}`,
   payout: `/party/${PARTY.id}/payout`,
   qr: `/party/${PARTY.id}/qr`,
-  classWallet: `/class/${CLASS.id}`,
+  groupWallet: `/group/${GROUP.id}`,
   dream: `/dream/${DREAM.slug}`,
 } as const;
 
-export const KIDS = [
+export const GUESTS = [
   "Liam", "Ava", "Olivia", "Mason", "Sophia", "Lucas", "Mia", "Noah", "Isabella",
   "Ethan", "Amelia", "James", "Harper", "Ben", "Evelyn", "Henry", "Abigail",
   "Jack", "Ella", "Leo", "Grace", "Owen", "Chloe", "Wyatt", "Zoe",

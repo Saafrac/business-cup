@@ -1,13 +1,13 @@
-// Состояние праздника считается из ленты событий (RSVP и взносы).
+// Состояние события считается из ленты событий (RSVP и взносы).
 // Модуль общий для сервера и браузера: сервер отдаёт события → клиент и сервер считают одно и то же.
-import { KIDS } from "@/lib/demo";
+import { GUESTS } from "@/lib/demo";
 
 export type Method = "card" | "external" | "test";
 export type Rsvp = "yes" | "no";
 
 export type PartyEvent = {
   id: string;
-  kid: string;
+  guest: string;
   rsvp: Rsvp | null;
   amountCents: number;
   tipCents: number;
@@ -19,13 +19,13 @@ export type NewEvent = Omit<PartyEvent, "id" | "createdAt">;
 
 export type GuestStatus = "paid" | "external" | "yes" | "no" | "open";
 
-export type Guest = { kid: string; status: GuestStatus; amountCents: number };
+export type Guest = { name: string; status: GuestStatus; amountCents: number };
 
-export type FeedItem = { id: string; kid: string; text: string; amountCents: number };
+export type FeedItem = { id: string; guest: string; text: string; amountCents: number };
 
 export type PartyState = {
   raisedCents: number;
-  families: number;
+  contributors: number;
   invited: number;
   coming: number;
   quiet: number;
@@ -34,7 +34,7 @@ export type PartyState = {
   version: string;
 };
 
-/** Засев: 14 семей уже скинулись на $210 — жюри своими взносами доводит до $300 */
+/** Засев: 14 гостей уже скинулись на $210 — жюри своими взносами доводит до $300 */
 const SEED_PAID: Array<[string, number, Method]> = [
   ["Liam", 20, "card"],
   ["Ava", 25, "card"],
@@ -59,14 +59,14 @@ const SEED_RSVP: Array<[string, Rsvp]> = [
 ];
 
 export const SEED_EVENTS: NewEvent[] = [
-  ...SEED_PAID.map(([kid, usd, method]): NewEvent => ({
-    kid,
+  ...SEED_PAID.map(([guest, usd, method]): NewEvent => ({
+    guest,
     rsvp: "yes",
     amountCents: usd * 100,
     tipCents: 0,
     method,
   })),
-  ...SEED_RSVP.map(([kid, rsvp]): NewEvent => ({ kid, rsvp, amountCents: 0, tipCents: 0, method: null })),
+  ...SEED_RSVP.map(([guest, rsvp]): NewEvent => ({ guest, rsvp, amountCents: 0, tipCents: 0, method: null })),
 ];
 
 /** Засев с фиктивными id и временем — для первой отрисовки до ответа сервера */
@@ -75,27 +75,27 @@ export function seedEventsForClient(): PartyEvent[] {
   return SEED_EVENTS.map((e, i) => ({ ...e, id: `seed-${i}`, createdAt: new Date(base + i * 60_000).toISOString() }));
 }
 
-export function eventText(e: Pick<PartyEvent, "kid" | "rsvp" | "amountCents" | "method">) {
-  const who = `${e.kid}’s family`;
+export function eventText(e: Pick<PartyEvent, "guest" | "rsvp" | "amountCents" | "method">) {
+  const who = e.guest;
   if (e.amountCents > 0) return e.method === "external" ? `${who} paid by Venmo` : `${who} chipped in`;
   if (e.rsvp === "yes") return `${who} is coming`;
   if (e.rsvp === "no") return `${who} can’t make it`;
   return `${who} opened the invite`;
 }
 
-export function buildState(events: PartyEvent[], invitedBase = KIDS.length): PartyState {
+export function buildState(events: PartyEvent[], invitedBase = GUESTS.length): PartyState {
   const sorted = [...events].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const byKid = new Map<string, { rsvp: Rsvp | null; amount: number; external: boolean; card: boolean }>();
-  const order: string[] = [...KIDS];
+  const byGuest = new Map<string, { rsvp: Rsvp | null; amount: number; external: boolean; card: boolean }>();
+  const order: string[] = [...GUESTS];
   let raised = 0;
 
   for (const e of sorted) {
-    const key = canonicalKid(e.kid);
-    if (!byKid.has(key)) {
-      byKid.set(key, { rsvp: null, amount: 0, external: false, card: false });
+    const key = canonicalGuest(e.guest);
+    if (!byGuest.has(key)) {
+      byGuest.set(key, { rsvp: null, amount: 0, external: false, card: false });
       if (!order.includes(key)) order.push(key);
     }
-    const g = byKid.get(key)!;
+    const g = byGuest.get(key)!;
     if (e.rsvp) g.rsvp = e.rsvp;
     if (e.amountCents > 0) {
       g.amount += e.amountCents;
@@ -105,23 +105,26 @@ export function buildState(events: PartyEvent[], invitedBase = KIDS.length): Par
     }
   }
 
-  const guests: Guest[] = order.map((kid) => {
-    const g = byKid.get(kid);
-    if (!g) return { kid, status: "open", amountCents: 0 };
+  const guests: Guest[] = order.map((name) => {
+    const g = byGuest.get(name);
+    if (!g) return { name, status: "open", amountCents: 0 };
     const status: GuestStatus =
       g.amount > 0 ? (g.card ? "paid" : "external") : g.rsvp === "yes" ? "yes" : g.rsvp === "no" ? "no" : "open";
-    return { kid, status, amountCents: g.amount };
+    return { name, status, amountCents: g.amount };
   });
 
   const feed = sorted
     .slice(-6)
     .reverse()
-    .map((e) => ({ id: e.id, kid: canonicalKid(e.kid), text: eventText({ ...e, kid: canonicalKid(e.kid) }), amountCents: e.amountCents }));
+    .map((e) => {
+      const guest = canonicalGuest(e.guest);
+      return { id: e.id, guest, text: eventText({ ...e, guest }), amountCents: e.amountCents };
+    });
 
   const last = sorted[sorted.length - 1];
   return {
     raisedCents: raised,
-    families: guests.filter((g) => g.amountCents > 0).length,
+    contributors: guests.filter((g) => g.amountCents > 0).length,
     invited: Math.max(invitedBase, guests.length),
     coming: guests.filter((g) => g.status !== "no" && g.status !== "open").length,
     quiet: guests.filter((g) => g.status === "open").length,
@@ -131,10 +134,10 @@ export function buildState(events: PartyEvent[], invitedBase = KIDS.length): Par
   };
 }
 
-/** «liam », «LIAM» → «Liam»: одно имя ребёнка — одна плитка */
-export function canonicalKid(raw: string) {
+/** «liam », «LIAM» → «Liam»: одно имя гостя — одна плитка */
+export function canonicalGuest(raw: string) {
   const s = raw.trim().replace(/\s+/g, " ");
-  const known = KIDS.find((k) => k.toLowerCase() === s.toLowerCase());
+  const known = GUESTS.find((k) => k.toLowerCase() === s.toLowerCase());
   if (known) return known;
   return s.charAt(0).toUpperCase() + s.slice(1);
 }

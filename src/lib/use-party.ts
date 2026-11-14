@@ -6,7 +6,7 @@ import { buildState, seedEventsForClient, type PartyState } from "@/lib/party-st
 
 const STATE_URL = `/api/party/${PARTY.id}/state`;
 
-// Живое состояние праздника: опрос сервера раз в intervalMs (≤ 2 с по ТЗ).
+// Живое состояние события: опрос сервера раз в intervalMs (≤ 2 с по ТЗ).
 // Опрос, а не WebSocket: проще и надёжнее за прокси Railway, 30 телефонов × 1 запрос/с — копейки.
 export function useParty(intervalMs = 1200) {
   const [state, setState] = useState<PartyState>(() => buildState(seedEventsForClient()));
@@ -49,7 +49,7 @@ export function useParty(intervalMs = 1200) {
 export type PostResult = { ok: true; state: PartyState } | { ok: false; error: string };
 
 export async function postPartyEvent(body: {
-  kid: string;
+  guest: string;
   rsvp: "yes" | "no" | null;
   amount?: number;
   tip?: number;

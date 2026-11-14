@@ -102,7 +102,7 @@ async function insertSeed(partyId: string) {
         await client.query(
           `INSERT INTO party_events (id, party_id, kid, rsvp, amount_cents, tip_cents, method, created_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [randomUUID(), partyId, e.kid, e.rsvp, e.amountCents, e.tipCents, e.method, new Date(base + i * 60_000)],
+          [randomUUID(), partyId, e.guest, e.rsvp, e.amountCents, e.tipCents, e.method, new Date(base + i * 60_000)],
         );
       }
     }
@@ -133,7 +133,7 @@ const pgStore: Store = {
     }
     return rows.map((r) => ({
       id: r.id,
-      kid: r.kid,
+      guest: r.kid, // колонка kid в Postgres не переименована: на проде уже есть таблица
       rsvp: r.rsvp,
       amountCents: r.amount_cents,
       tipCents: r.tip_cents,
@@ -151,7 +151,7 @@ const pgStore: Store = {
     await pool().query(
       `INSERT INTO party_events (id, party_id, kid, rsvp, amount_cents, tip_cents, method)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [randomUUID(), partyId, e.kid, e.rsvp, e.amountCents, e.tipCents, e.method],
+      [randomUUID(), partyId, e.guest, e.rsvp, e.amountCents, e.tipCents, e.method],
     );
   },
   async reset(partyId) {

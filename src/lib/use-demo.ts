@@ -38,7 +38,7 @@ export function useDemoStep(last: number, intervalMs: number) {
 }
 
 /** origin текущей страницы; на сервере — боевой домен */
-export function useOrigin(fallback = "https://classgift.app") {
+export function useOrigin(fallback = "https://chipin.app") {
   return useSyncExternalStore(
     noop,
     () => window.location.origin,

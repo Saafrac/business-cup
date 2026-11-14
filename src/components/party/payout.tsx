@@ -17,7 +17,7 @@ export function Payout({ id }: { id: string }) {
 
   // делим то, что реально собрано (живые данные), подарок не больше собранного
   const COLLECTED = state.raisedCents / 100;
-  const FAMILIES = state.families;
+  const CONTRIBUTORS = state.contributors;
   const maxGift = Math.floor(COLLECTED);
   const gift = Math.min(giftRaw, maxGift);
   const dream = Math.round((COLLECTED - gift) * 100) / 100;
@@ -29,7 +29,7 @@ export function Payout({ id }: { id: string }) {
       <header className="wrap flex items-center py-md">
         <Link href={`/party/${id}`} className="flex min-h-11 items-center gap-xs font-extrabold no-underline">
           <ArrowLeftIcon size={18} />
-          {PARTY.child}’s party
+          {PARTY.honoree}’s party
         </Link>
       </header>
 
@@ -37,7 +37,7 @@ export function Payout({ id }: { id: string }) {
         <div className="flex min-w-0 flex-[999_1_600px] flex-col gap-2xl">
           <div className="flex flex-col gap-md">
             <h1 className="max-w-[18ch] text-display-s">
-              {FAMILIES} families gave {money(COLLECTED)}. Where should it go?
+              {CONTRIBUTORS} guests gave {money(COLLECTED)}. Where should it go?
             </h1>
             <p className="lead">It’s already in your Stripe balance. This decides what it’s for.</p>
           </div>
@@ -98,24 +98,24 @@ export function Payout({ id }: { id: string }) {
 
           <section aria-labelledby="notes" className="flex flex-col gap-lg">
             <h2 id="notes" className="text-2xl">
-              Thank-you notes from {PARTY.child}
+              Thank-you notes from {PARTY.honoree}
             </h2>
             <div className="field">
-              <label htmlFor="kidwords">Ask {PARTY.child} what she wants to say, and type it here</label>
-              <input id="kidwords" className="input" type="text" value={words} onChange={(e) => setWords(e.target.value)} />
+              <label htmlFor="thanks-words">Ask {PARTY.honoree} what to say, and type it here</label>
+              <input id="thanks-words" className="input" type="text" value={words} onChange={(e) => setWords(e.target.value)} />
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-lg">
               <Note bg="var(--color-signal-soft)" tilt={-1.2} className="p-lg">
                 <p className={quote}>
                   “Dear Liam, thank you for helping with my {PARTY.giftShort}. {said}.”
                 </p>
-                <p className="pt-xs text-sm font-extrabold">To Liam’s family</p>
+                <p className="pt-xs text-sm font-extrabold">To Liam</p>
               </Note>
               <Note bg="var(--color-mint)" tilt={1} className="p-lg">
                 <p className={quote}>
                   “Dear Ava, thank you for my {PARTY.giftShort}! {said}. You can try it too.”
                 </p>
-                <p className="pt-xs text-sm font-extrabold">To Ava’s family</p>
+                <p className="pt-xs text-sm font-extrabold">To Ava</p>
               </Note>
             </div>
           </section>
@@ -135,7 +135,7 @@ export function Payout({ id }: { id: string }) {
             ]}
           />
           <Link className="btn btn--primary btn--block" href={ROUTES.dream}>
-            Confirm and send {FAMILIES} notes
+            Confirm and send {CONTRIBUTORS} notes
           </Link>
         </aside>
       </div>

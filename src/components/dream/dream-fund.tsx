@@ -14,7 +14,7 @@ const TILTS = [-1.2, 1, -0.6];
 
 const HISTORY: Entry[] = [
   { text: "For the stars you’ll find, sweetheart.", meta: "Grandma Ruth, $50, 12/09", bg: BGS[0], tilt: TILTS[0], quoted: true },
-  { text: "Left over from the bike, from 21 families in her class", meta: "Birthday party, $40, 12/04", bg: BGS[1], tilt: TILTS[1], quoted: false },
+  { text: "Left over from the bike, from 21 guests at her party", meta: "Birthday party, $40, 12/04", bg: BGS[1], tilt: TILTS[1], quoted: false },
   { text: "Send me a photo of the moon.", meta: "Aunt Maya, $30, 12/06", bg: BGS[2], tilt: TILTS[2], quoted: true },
 ];
 
@@ -37,7 +37,7 @@ export function DreamFundPage() {
     setBalance((b) => b + amount);
     setEntries((list) => [
       {
-        text: wish.trim() || `A gift for ${PARTY.child}`,
+        text: wish.trim() || `A gift for ${PARTY.honoree}`,
         meta: `${from.trim() || "Someone who loves her"}, $${amount}, 12/14`,
         bg: BGS[i % BGS.length],
         tilt: TILTS[i % TILTS.length],
@@ -52,10 +52,10 @@ export function DreamFundPage() {
     <PhoneColumn>
       <div className="paper torn-bottom on-dark flex flex-col gap-xl bg-night px-md pt-md pb-2xl text-night-ink">
         <div className="flex items-center justify-between">
-          <span className="font-display text-lg font-semibold tracking-[-0.03em]">class gift</span>
-          <span className="text-sm font-bold text-night-muted">{PARTY.child}’s Dream Fund</span>
+          <span className="font-display text-lg font-semibold tracking-[-0.03em]">chip in</span>
+          <span className="text-sm font-bold text-night-muted">{PARTY.honoree}’s Dream Fund</span>
         </div>
-        <h1 className="text-[2.5rem] leading-[1.02]">{PARTY.child} is saving for a telescope</h1>
+        <h1 className="text-[2.5rem] leading-[1.02]">{PARTY.honoree} is saving for a telescope</h1>
         <div className="flex items-end gap-lg">
           <div
             role="img"
@@ -109,7 +109,7 @@ export function DreamFundPage() {
           <input id="from" className="input" type="text" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="wish">A line for {PARTY.child}, if you like</label>
+          <label htmlFor="wish">A line for {PARTY.honoree}, if you like</label>
           <textarea id="wish" className="input" rows={2} value={wish} onChange={(e) => setWish(e.target.value)} />
         </div>
       </section>
@@ -130,7 +130,7 @@ export function DreamFundPage() {
 
       <div className="paper sticky bottom-0 z-(--z-sticky) mt-auto flex flex-col gap-xs border-t-2 border-ink bg-paper px-md pt-sm pb-lg">
         <button type="button" onClick={add} disabled={amount < 5} className="btn btn--primary btn--block min-h-14 text-lg">
-          Add ${amount} for {PARTY.child}
+          Add ${amount} for {PARTY.honoree}
         </button>
         <span className="text-center text-xs font-semibold text-ink-2">Goes to her parent’s account through Stripe</span>
       </div>

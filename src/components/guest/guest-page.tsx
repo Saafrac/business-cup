@@ -18,8 +18,8 @@ const MIN_OTHER = 5;
 export function GuestPage({ slug }: { slug: string }) {
   const router = useRouter();
   const { state, accept } = useParty();
-  const kidRef = useRef<HTMLInputElement>(null);
-  const [kid, setKid] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [guest, setGuest] = useState("");
   const [rsvp, setRsvp] = useState<"yes" | "no">("yes");
   const [amount, setAmount] = useState<Amount>(20);
   const [other, setOther] = useState("15");
@@ -32,16 +32,16 @@ export function GuestPage({ slug }: { slug: string }) {
   const otherInvalid = amount === "other" && gift < MIN_OTHER;
   const tipAmt = Math.round(gift * tip) / 100;
   const base = gift + tipAmt;
-  // Покрыть комиссию Stripe 2.9% + $0.30: grossup, чтобы имениннику пришла полная сумма
+  // Покрыть комиссию Stripe 2.9% + $0.30: grossup, чтобы виновнику события пришла полная сумма
   const proc = cover && base > 0 ? Math.round(((base + 0.3) / (1 - 0.029) - base) * 100) / 100 : 0;
   const total = base + proc;
 
   const submit = async (how: How) => {
     setError("");
-    const name = kid.trim();
+    const name = guest.trim();
     if (!name) {
-      setError("Type your child’s first name first");
-      kidRef.current?.focus();
+      setError("Type your name first");
+      nameRef.current?.focus();
       return;
     }
     if (how !== "rsvp" && otherInvalid) {
@@ -51,8 +51,8 @@ export function GuestPage({ slug }: { slug: string }) {
     setBusy(how);
     const res = await postPartyEvent(
       how === "rsvp"
-        ? { kid: name, rsvp }
-        : { kid: name, rsvp, amount: gift, tip: tipAmt, method: how === "external" ? "external" : "test" },
+        ? { guest: name, rsvp }
+        : { guest: name, rsvp, amount: gift, tip: tipAmt, method: how === "external" ? "external" : "test" },
     );
     if (!res.ok) {
       setBusy(null);
@@ -61,18 +61,18 @@ export function GuestPage({ slug }: { slug: string }) {
     }
     accept(res.state);
     const paid = how === "card" ? total : how === "external" ? gift : 0;
-    router.push(`/p/${slug}/thanks?kid=${encodeURIComponent(name)}&paid=${paid.toFixed(2)}&how=${how}`);
+    router.push(`/p/${slug}/thanks?guest=${encodeURIComponent(name)}&paid=${paid.toFixed(2)}&how=${how}`);
   };
 
   return (
     <PhoneColumn>
       <div className="paper torn-bottom on-accent flex flex-col gap-xl bg-accent px-md pt-md pb-3xl text-accent-ink">
         <div className="flex items-center justify-between">
-          <span className="font-display text-lg font-semibold tracking-[-0.03em]">class gift</span>
+          <span className="font-display text-lg font-semibold tracking-[-0.03em]">chip in</span>
           <span className="text-sm font-bold">No account needed</span>
         </div>
         <h1 className="text-[3.25rem] leading-[0.98]">
-          {PARTY.child} is turning {PARTY.age}
+          {PARTY.honoree} is turning {PARTY.age}
         </h1>
       </div>
 
@@ -99,7 +99,7 @@ export function GuestPage({ slug }: { slug: string }) {
             <h2 id="gift" className="text-xl">
               {PARTY.gift}
             </h2>
-            <p className="text-sm text-ink-2">The gift {PARTY.child} asked for</p>
+            <p className="text-sm text-ink-2">The gift {PARTY.honoree} asked for</p>
           </div>
         </div>
         <div className="flex items-baseline justify-between">
@@ -113,7 +113,7 @@ export function GuestPage({ slug }: { slug: string }) {
           label={`${usdShort(state.raisedCents)} of $${PARTY.goal} raised`}
         />
         <p className="font-extrabold">
-          {state.families} of {state.invited} families are in
+          {state.contributors} of {state.invited} guests are in
         </p>
       </section>
 
@@ -123,18 +123,18 @@ export function GuestPage({ slug }: { slug: string }) {
             Can you come?
           </h2>
           <div className="field">
-            <label htmlFor="kid">Your child’s first name</label>
+            <label htmlFor="guest-name">Your name</label>
             <input
-              ref={kidRef}
-              id="kid"
+              ref={nameRef}
+              id="guest-name"
               className="input"
               type="text"
               autoComplete="off"
               autoCapitalize="words"
               maxLength={40}
               placeholder="For example, Liam"
-              value={kid}
-              onChange={(e) => setKid(e.target.value)}
+              value={guest}
+              onChange={(e) => setGuest(e.target.value)}
             />
           </div>
           <div className="grid grid-cols-2 gap-xs pt-xs">
@@ -151,7 +151,7 @@ export function GuestPage({ slug }: { slug: string }) {
           <h2 id="chip" className="text-2xl">
             Chip in for the {PARTY.giftShort}
           </h2>
-          <p className="text-sm text-ink-2">Optional. Other parents see the total, never your amount.</p>
+          <p className="text-sm text-ink-2">Optional. Other guests see the total, never your amount.</p>
           <div className="grid grid-cols-4 gap-xs pt-xs">
             {AMOUNTS.map((a) => (
               <button key={a} className="choice" type="button" aria-pressed={amount === a} onClick={() => setAmount(a)}>
@@ -180,7 +180,7 @@ export function GuestPage({ slug }: { slug: string }) {
 
         <section aria-labelledby="tip" className="flex flex-col gap-sm">
           <h2 id="tip" className="text-lg">
-            A tip for Class Gift
+            A tip for Chip In
           </h2>
           <div className="grid grid-cols-3 gap-xs">
             {TIPS.map((t) => (
@@ -197,7 +197,7 @@ export function GuestPage({ slug }: { slug: string }) {
               onChange={() => setCover((c) => !c)}
               className="m-0 size-[22px] shrink-0 accent-accent"
             />
-            <span>Cover the card fee (2.9% + $0.30) so {PARTY.child} gets it all</span>
+            <span>Cover the card fee (2.9% + $0.30) so {PARTY.honoree} gets it all</span>
           </label>
         </section>
 

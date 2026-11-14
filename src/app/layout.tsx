@@ -21,9 +21,9 @@ const silkscreen = Silkscreen({
 });
 
 export const metadata: Metadata = {
-  title: "Class Gift: the class birthday gift in one link",
+  title: "Chip In: the group gift for any event, in one link",
   description:
-    "One link in the class group chat collects RSVPs and money for a kid’s birthday gift. Room parents run every class collection from one wallet.",
+    "One link in the group chat collects RSVPs and money for a gift: birthdays, weddings, farewells, teacher thank-yous. Organizers run every group collection from one wallet.",
 };
 
 export const viewport: Viewport = {

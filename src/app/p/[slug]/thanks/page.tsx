@@ -17,7 +17,7 @@ function one(v: string | string[] | undefined) {
 export default function ThanksPage(props: PageProps<"/p/[slug]/thanks">) {
   const slug = PARTY.slug;
   return (
-    <Suspense fallback={<ThanksView slug={slug} kid="Liam" paid={20} how="card" />}>
+    <Suspense fallback={<ThanksView slug={slug} guest="Liam" paid={20} how="card" />}>
       <ThanksFromQuery slug={slug} searchParams={props.searchParams} />
     </Suspense>
   );
@@ -35,32 +35,32 @@ async function ThanksFromQuery({
   return (
     <ThanksView
       slug={slug}
-      kid={(one(q.kid) || "Liam").slice(0, 40)}
+      guest={(one(q.guest) || "Liam").slice(0, 40)}
       paid={Number(one(q.paid) ?? 20) || 0}
       how={how === "external" || how === "rsvp" ? how : "card"}
     />
   );
 }
 
-function ThanksView({ slug, kid, paid, how }: { slug: string; kid: string; paid: number; how: How }) {
+function ThanksView({ slug, guest, paid, how }: { slug: string; guest: string; paid: number; how: How }) {
   const receipt =
     how === "card" && paid > 0
       ? `Your ${usd(paid)} receipt is in your email.`
       : how === "external"
-        ? "We marked your family in as paid by Venmo or Zelle."
+        ? "We marked you as paid by Venmo or Zelle."
         : "Thanks for letting us know.";
 
   return (
     <PhoneColumn>
       <div className="flex items-center justify-between p-md">
-        <span className="font-display text-lg font-semibold tracking-[-0.03em]">class gift</span>
+        <span className="font-display text-lg font-semibold tracking-[-0.03em]">chip in</span>
         <Link href={`/p/${slug}`} className="flex min-h-11 items-center text-sm font-bold">
           Party details
         </Link>
       </div>
 
       <div className="flex flex-col gap-xs px-md pt-xs">
-        <h1 className="text-3xl">See you Saturday, {kid}</h1>
+        <h1 className="text-3xl">See you Saturday, {guest}</h1>
         <p className="text-ink-2">
           {PARTY.date} at {PARTY.time}, {PARTY.place}. {receipt}
         </p>
@@ -68,7 +68,7 @@ function ThanksView({ slug, kid, paid, how }: { slug: string; kid: string; paid:
 
       <div className="relative px-lg pt-xl">
         <Note bg="var(--color-signal-soft)" tilt={-2} className="flex flex-col gap-xs px-lg py-xl">
-          <span className="text-sm font-extrabold">From {PARTY.child}</span>
+          <span className="text-sm font-extrabold">From {PARTY.honoree}</span>
           <p className="font-display text-xl leading-[1.3] font-medium tracking-[-0.015em]">
             “Thank you for helping with my bike. I’m going to ride it to school every day.”
           </p>
@@ -87,10 +87,10 @@ function ThanksView({ slug, kid, paid, how }: { slug: string; kid: string; paid:
       <LiveProgress />
 
       <div className="paper torn-top on-accent mt-auto flex flex-col gap-sm bg-accent px-md pt-2xl pb-lg text-accent-ink max-sm:mt-2xl">
-        <h2 className="text-2xl">When is {kid}’s birthday?</h2>
-        <p>The same page for the party takes about two minutes. Free for up to 15 guests.</p>
+        <h2 className="text-2xl">Got an event coming up, {guest}?</h2>
+        <p>The same page for your event takes about two minutes. Free for up to 15 guests.</p>
         <Link className="btn btn--signal btn--block mt-xs" href={ROUTES.newParty}>
-          Start {kid}’s gift page
+          Start your gift page
         </Link>
       </div>
     </PhoneColumn>

@@ -31,10 +31,10 @@ export function Dashboard({ id }: { id: string }) {
   const [sent, setSent] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const quiet = state.guests.filter((g) => g.status === "open").slice(0, 3).map((g) => g.kid);
+  const quiet = state.guests.filter((g) => g.status === "open").slice(0, 3).map((g) => g.name);
   const nudge =
     edited ??
-    `Hi! ${PARTY.child}’s party is Sat ${PARTY.date} at ${PARTY.place}. Would love to know if your kid can come. The class is chipping in for her ${PARTY.giftShort}, totally optional.`;
+    `Hi! ${PARTY.honoree}’s party is Sat ${PARTY.date} at ${PARTY.place}. Would love to know if you can come. Everyone is chipping in for her ${PARTY.giftShort}, totally optional.`;
   const link = `${origin}/p/${PARTY.slug}`;
 
   const copy = async () => {
@@ -59,7 +59,7 @@ export function Dashboard({ id }: { id: string }) {
           <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-md">
             <div className="flex flex-wrap items-center gap-sm">
               <h1 id="party" className="text-display-s">
-                {PARTY.child} turns {PARTY.age}
+                {PARTY.honoree} turns {PARTY.age}
               </h1>
               <span role="status" className="tag bg-accent-ink text-ink">
                 Open until {PARTY.deadline}
@@ -100,19 +100,19 @@ export function Dashboard({ id }: { id: string }) {
         </div>
 
         <div className="flex flex-wrap items-start gap-2xl">
-          <section aria-labelledby="cls" className="flex min-w-0 flex-[999_1_600px] flex-col gap-lg">
+          <section aria-labelledby="gl" className="flex min-w-0 flex-[999_1_600px] flex-col gap-lg">
             <div className="flex flex-wrap items-baseline justify-between gap-md border-b-2 border-ink pb-sm">
-              <h2 id="cls" className="text-2xl">
-                The class
+              <h2 id="gl" className="text-2xl">
+                Guests
               </h2>
               <p className="font-bold text-ink-2">
-                {state.coming} coming, {state.families} chipped in, {state.quiet} quiet
+                {state.coming} coming, {state.contributors} chipped in, {state.quiet} quiet
               </p>
             </div>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-sm sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))]">
               {state.guests.map((g, i) => {
                 const [kind, label] = LOOK[g.status];
-                return <NameTag key={g.kid} name={g.kid} state={label} kind={kind} tilt={TILT[i % TILT.length]} />;
+                return <NameTag key={g.name} name={g.name} state={label} kind={kind} tilt={TILT[i % TILT.length]} />;
               })}
             </div>
             <div className="flex flex-wrap gap-lg">
@@ -171,7 +171,7 @@ export function Dashboard({ id }: { id: string }) {
                     }}
                     className="btn btn--primary"
                   >
-                    {sent ? `Sent to ${quiet.length} families` : `Send to ${quiet.length} families`}
+                    {sent ? `Sent to ${quiet.length} guests` : `Send to ${quiet.length} guests`}
                   </button>
                   <button
                     type="button"

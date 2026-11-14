@@ -13,7 +13,7 @@ export function LiveProgress() {
     <div className="flex flex-col gap-xs px-md pt-xl">
       <Bar ratio={state.raisedCents / (PARTY.goal * 100)} label={`${raised} of $${PARTY.goal} raised`} />
       <p className="text-sm font-extrabold">
-        {raised} of ${PARTY.goal}, from {state.families} of {state.invited} families
+        {raised} of ${PARTY.goal}, from {state.contributors} of {state.invited} guests
       </p>
     </div>
   );

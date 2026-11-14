@@ -3,23 +3,23 @@
 import { useState } from "react";
 import { SparkIcon } from "@/components/icons";
 import { AppHeader, Key, NameTag, Note, SWATCH, type TagKind } from "@/components/shell";
-import { CLASS, KIDS, TILT } from "@/lib/demo";
+import { GROUP, GUESTS, TILT } from "@/lib/demo";
 
 const EXTERNAL = new Set(["Olivia", "Isabella", "Harper"]);
 const NOT_YET = new Set(["Noah", "Ethan", "Wyatt"]);
 
-const TEACHER_EMAIL =
+const SAMPLE_MESSAGE =
   "Hi families! Our spring museum trip is on 03/20. The museum asks $12 per student, please send by 03/06. Thank you! Mrs. Carter";
 
-const TABS = ["Teacher gift", "Field trip bus", "Class supplies"];
+const TABS = ["Teacher gift", "Field trip bus", "Supplies"];
 
 const NUDGES = [
-  { to: "Tom, Noah’s dad", text: "Hi Tom! The class gift for Mrs. Carter closes Friday. $15 if you’d like to join, no worries if not.", tilt: -1 },
+  { to: "Tom, Noah’s dad", text: "Hi Tom! The gift for Mrs. Carter closes Friday. $15 if you’d like to join, no worries if not.", tilt: -1 },
   { to: "Sam, Ethan’s mom", text: "Hi Sam, we’re putting together a thank-you for Mrs. Carter. Totally optional, $15, link below.", tilt: 0.8 },
   { to: "Lee, Wyatt’s mom", text: "Hi Lee! Friday is the last day for the Mrs. Carter gift. Join if it works for you.", tilt: -0.5 },
 ];
 
-type Draft = { title: string; perFamily: number; due: string; expected: number };
+type Draft = { title: string; perPerson: number; due: string; expected: number };
 
 /** Черновик сбора для демо: тот же формат, что вернёт AI Collection Builder (запасной ответ на таймаут) */
 function draftFrom(text: string): Draft {
@@ -33,15 +33,15 @@ function draftFrom(text: string): Draft {
     : lower.includes("teacher") || lower.includes("thank")
       ? "Teacher thank-you"
       : lower.includes("supplies")
-        ? "Class supplies"
-        : "Class collection";
-  return { title, perFamily: per, due: due ? `${due[1]}/${due[2]}/2027` : "—", expected: per * KIDS.length };
+        ? "Supplies"
+        : "Group collection";
+  return { title, perPerson: per, due: due ? `${due[1]}/${due[2]}/2027` : "—", expected: per * GUESTS.length };
 }
 
-export function ClassWallet() {
+export function GroupWallet() {
   const [tab, setTab] = useState(0);
-  const [paste, setPaste] = useState(TEACHER_EMAIL);
-  const [draft, setDraft] = useState<Draft>(() => draftFrom(TEACHER_EMAIL));
+  const [paste, setPaste] = useState(SAMPLE_MESSAGE);
+  const [draft, setDraft] = useState<Draft>(() => draftFrom(SAMPLE_MESSAGE));
   const [thinking, setThinking] = useState(false);
   const [published, setPublished] = useState(false);
   const [sentAll, setSentAll] = useState(false);
@@ -57,12 +57,12 @@ export function ClassWallet() {
 
   return (
     <div className="paper min-h-dvh w-full bg-paper text-ink">
-      <AppHeader active="class" avatar="J" avatarLabel="Signed in as Julia" avatarClass="bg-mint text-mint-ink" />
+      <AppHeader active="group" avatar="J" avatarLabel="Signed in as Julia" avatarClass="bg-mint text-mint-ink" />
 
       <div className="wrap flex flex-col gap-xl pt-xl pb-3xl">
         <div className="flex flex-wrap items-end justify-between gap-lg">
           <div className="flex flex-col gap-xs">
-            <h1 className="text-display-s">{CLASS.name}</h1>
+            <h1 className="text-display-s">{GROUP.name}</h1>
             <p className="text-ink-2">25 families, school year 2026 to 2027</p>
           </div>
           <div role="tablist" aria-label="Collections" className="flex flex-wrap gap-xs">
@@ -92,7 +92,7 @@ export function ClassWallet() {
                   <h2 id="tg" className="text-2xl">
                     Teacher appreciation gift
                   </h2>
-                  <p className="text-ink-2">$15 a family, due Friday 12/12</p>
+                  <p className="text-ink-2">$15 each, due Friday 12/12</p>
                 </div>
                 <div className="flex items-baseline gap-sm">
                   <span className="figure text-3xl text-accent">22/25</span>
@@ -100,7 +100,7 @@ export function ClassWallet() {
                 </div>
               </div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-sm sm:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]">
-                {KIDS.map((n, i) => {
+                {GUESTS.map((n, i) => {
                   const [kind, label]: [TagKind, string] = NOT_YET.has(n)
                     ? ["open", "Not yet"]
                     : EXTERNAL.has(n)
@@ -152,7 +152,7 @@ export function ClassWallet() {
               </h2>
               <div className="field">
                 <label htmlFor="paste" className="text-night-muted!">
-                  Paste the teacher’s email or a chat message
+                  Paste an email or a chat message
                 </label>
                 <textarea
                   id="paste"
@@ -178,7 +178,7 @@ export function ClassWallet() {
                 <h3 className="text-xl">{draft.title}</h3>
                 <p className="label text-night-muted!">AI’s draft. Check it before you publish.</p>
                 <div className="flex flex-wrap gap-xs">
-                  {[`$${draft.perFamily} a family`, `due ${draft.due}`, `$${draft.expected} expected`].map((t) => (
+                  {[`$${draft.perPerson} each`, `due ${draft.due}`, `$${draft.expected} expected`].map((t) => (
                     <span key={t} className="tag bg-night-rule text-night-ink">
                       {t}
                     </span>
@@ -215,7 +215,7 @@ export function ClassWallet() {
                   </tr>
                   <tr className="border-y border-edge">
                     <th scope="row" className="py-sm text-left font-extrabold">
-                      Left in the class wallet
+                      Left in the group wallet
                     </th>
                     <td className="num text-right font-display text-xl font-semibold text-accent">$15.00</td>
                   </tr>

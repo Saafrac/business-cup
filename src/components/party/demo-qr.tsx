@@ -37,7 +37,7 @@ export function DemoQr({ slug }: { slug: string }) {
       <div className="flex min-w-0 flex-[1_1_0] flex-col gap-xl">
         <div className="flex flex-col gap-sm">
           <h1 className="text-[3.5rem] leading-[0.95] tracking-[-0.045em] md:text-[6rem]">
-            A {PARTY.giftShort} for {PARTY.child}
+            A {PARTY.giftShort} for {PARTY.honoree}
           </h1>
           <p className="text-xl font-bold text-signal md:text-2xl">Scan, RSVP, chip in. About 30 seconds.</p>
         </div>
@@ -55,7 +55,7 @@ export function DemoQr({ slug }: { slug: string }) {
             fillStyle={{ backgroundColor: "var(--color-signal)" }}
           />
           <p className="text-xl font-extrabold md:text-2xl">
-            {state.families} of {state.invited} families are in
+            {state.contributors} of {state.invited} guests are in
           </p>
         </div>
         <div className="flex min-h-16 flex-wrap gap-sm">
@@ -69,7 +69,7 @@ export function DemoQr({ slug }: { slug: string }) {
           )}
           {reached && (
             <span className="pop inline-flex items-center rounded-pill bg-signal px-lg py-sm text-lg font-extrabold text-signal-ink md:text-xl">
-              That’s the whole {PARTY.giftShort}. Thank you, class!
+              That’s the whole {PARTY.giftShort}. Thank you, everyone!
             </span>
           )}
         </div>

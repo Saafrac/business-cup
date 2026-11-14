@@ -1,6 +1,6 @@
 import "server-only";
 import { PARTY } from "@/lib/demo";
-import { buildState, canonicalKid, type NewEvent } from "@/lib/party-state";
+import { buildState, canonicalGuest, type NewEvent } from "@/lib/party-state";
 import { store } from "@/lib/server/store";
 
 export const NO_STORE = { "Cache-Control": "no-store" };
@@ -15,17 +15,17 @@ export async function partyState(id: string) {
 
 type Parsed = { ok: true; event: NewEvent } | { ok: false; error: string };
 
-const KID_RE = /^[\p{L}\p{M}' .-]{1,40}$/u;
+const NAME_RE = /^[\p{L}\p{M}' .-]{1,40}$/u;
 const MIN_USD = 5;
 const MAX_USD = 500;
 
-/** Проверка тела запроса от гостя: имя ребёнка, RSVP, сумма в долларах, чаевые, способ */
+/** Проверка тела запроса от гостя: имя, RSVP, сумма в долларах, чаевые, способ */
 export function parseGuestEvent(body: unknown): Parsed {
   if (!body || typeof body !== "object") return { ok: false, error: "Bad request" };
   const b = body as Record<string, unknown>;
 
-  const kid = typeof b.kid === "string" ? b.kid.trim().replace(/\s+/g, " ") : "";
-  if (!KID_RE.test(kid)) return { ok: false, error: "Type your child’s first name" };
+  const guest = typeof b.guest === "string" ? b.guest.trim().replace(/\s+/g, " ") : "";
+  if (!NAME_RE.test(guest)) return { ok: false, error: "Type your name" };
 
   const rsvp = b.rsvp === "yes" || b.rsvp === "no" ? b.rsvp : null;
 
@@ -44,7 +44,7 @@ export function parseGuestEvent(body: unknown): Parsed {
 
   return {
     ok: true,
-    event: { kid: canonicalKid(kid), rsvp, amountCents: amount, tipCents: amount > 0 ? tip : 0, method: amount > 0 ? method : null },
+    event: { guest: canonicalGuest(guest), rsvp, amountCents: amount, tipCents: amount > 0 ? tip : 0, method: amount > 0 ? method : null },
   };
 }
 

@@ -17,9 +17,13 @@ const IDEAS = [
 
 const FREE_GUESTS = 15;
 
+const OCCASIONS = ["Birthday", "Wedding", "Baby shower", "Farewell", "Other"] as const;
+type Occasion = (typeof OCCASIONS)[number];
+
 export function NewPartyWizard() {
   const [step, setStep] = useState<Step>(1);
-  const [child, setChild] = useState("Emma");
+  const [occasion, setOccasion] = useState<Occasion>("Birthday");
+  const [honoree, setHonoree] = useState("Emma");
   const [age, setAge] = useState("7");
   const [date, setDate] = useState("2026-12-05");
   const [time, setTime] = useState("14:00");
@@ -35,7 +39,9 @@ export function NewPartyWizard() {
   const [isPro, setIsPro] = useState(false);
   const [paywall, setPaywall] = useState(false);
 
-  const name = child.trim() || "Your kid";
+  const name = honoree.trim() || "Guest of honor";
+  const isBirthday = occasion === "Birthday";
+  const eventName = `${name}’s ${occasion === "Other" ? "event" : occasion.toLowerCase()}`;
   const budget = invited * 20;
   const goalTitle = manual ? manualTitle || "Your gift" : IDEAS[picked].title;
   const goalPrice = manual ? Number(manualPrice) || 0 : IDEAS[picked].price;
@@ -52,7 +58,7 @@ export function NewPartyWizard() {
 
   const steps: Array<[Step, string]> = [
     [1, name],
-    [2, "Party"],
+    [2, "Event"],
     [3, "Gift"],
   ];
 
@@ -83,24 +89,39 @@ export function NewPartyWizard() {
         <div className="flex min-w-0 flex-[999_1_600px] flex-col gap-xl">
           {step === 1 && (
             <>
-              <Heading title="Whose birthday is it?" lead="A first name and age. We keep nothing else about kids." />
-              <div className="grid gap-md sm:grid-cols-[2fr_1fr]">
-                <Field id="child" label="Child’s first name">
-                  <input id="child" className="input" value={child} onChange={(e) => setChild(e.target.value)} />
+              <Heading title="What are we celebrating?" lead="The occasion and a first name. We keep nothing else about the person." />
+              <div role="group" aria-label="Occasion" className="flex flex-wrap gap-xs">
+                {OCCASIONS.map((o) => (
+                  <button
+                    key={o}
+                    type="button"
+                    aria-pressed={occasion === o}
+                    onClick={() => setOccasion(o)}
+                    className="choice px-md"
+                  >
+                    {o}
+                  </button>
+                ))}
+              </div>
+              <div className={cn("grid gap-md", isBirthday && "sm:grid-cols-[2fr_1fr]")}>
+                <Field id="honoree" label="Who is it for? First name">
+                  <input id="honoree" className="input" value={honoree} onChange={(e) => setHonoree(e.target.value)} />
                 </Field>
-                <Field id="age" label="Turning">
-                  <input id="age" className="input" type="number" min={1} max={17} value={age} onChange={(e) => setAge(e.target.value)} />
-                </Field>
+                {isBirthday && (
+                  <Field id="age" label="Turning">
+                    <input id="age" className="input" type="number" min={1} max={120} value={age} onChange={(e) => setAge(e.target.value)} />
+                  </Field>
+                )}
               </div>
               <button type="button" onClick={() => setStep(2)} className="btn btn--primary self-start">
-                Next: the party
+                Next: the event
               </button>
             </>
           )}
 
           {step === 2 && (
             <>
-              <Heading title={`When is ${name}’s party?`} lead="Guests see the date and place on the invite page." />
+              <Heading title={`When is ${eventName}?`} lead="Guests see the date and place on the invite page." />
               <div className="grid gap-md sm:grid-cols-2">
                 <Field id="date" label="Date">
                   <input id="date" className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -111,7 +132,7 @@ export function NewPartyWizard() {
                 <Field id="place" label="Place" wide>
                   <input id="place" className="input" value={place} onChange={(e) => setPlace(e.target.value)} />
                 </Field>
-                <Field id="invited" label="Kids invited">
+                <Field id="invited" label="Guests invited">
                   <input
                     id="invited"
                     className="input"
@@ -138,18 +159,20 @@ export function NewPartyWizard() {
           {step === 3 && (
             <>
               <Heading
-                title={`What does ${name} keep asking for?`}
-                lead={`${invited} kids at about $20 each, so up to $${budget}. AI Dream Finder suggests three gifts in that range.`}
+                title={`What would ${name} love?`}
+                lead={`${invited} guests at about $20 each, so up to $${budget}. AI Dream Finder suggests three gifts in that range.`}
                 narrow
               />
 
               <div className="flex flex-col gap-sm">
                 <div className="field">
-                  <label htmlFor="likes">What is she into right now?</label>
+                  <label htmlFor="likes">What is {name} into right now?</label>
                   <textarea id="likes" className="input" rows={2} value={likes} onChange={(e) => setLikes(e.target.value)} />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-sm">
-                  <span className="label">Only her first name and age go to the AI.</span>
+                  <span className="label">
+                    Only the first name, the occasion{isBirthday ? " and the age" : ""} go to the AI.
+                  </span>
                   <button type="button" onClick={suggestAgain} disabled={thinking} className="btn btn--small">
                     <RefreshIcon size={18} className={thinking ? "animate-spin" : undefined} />
                     {thinking ? "Thinking…" : "Three new ideas"}
@@ -234,9 +257,7 @@ export function NewPartyWizard() {
 
         <aside className="sheet min-w-0 flex-[1_1_320px]" style={{ rotate: "1deg" }}>
           <div className="paper torn-note flex flex-col gap-md bg-signal-soft px-lg py-xl">
-            <h2 className="text-2xl">
-              {name} turns {age || "?"}
-            </h2>
+            <h2 className="text-2xl">{isBirthday ? `${name} turns ${age || "?"}` : eventName}</h2>
             <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-md gap-y-xs text-md">
               <dt className="text-ink-2">When</dt>
               <dd className="m-0 font-extrabold">
@@ -245,7 +266,7 @@ export function NewPartyWizard() {
               <dt className="text-ink-2">Where</dt>
               <dd className="m-0 font-extrabold">{place || "—"}</dd>
               <dt className="text-ink-2">Invited</dt>
-              <dd className="m-0 font-extrabold">{invited} kids</dd>
+              <dd className="m-0 font-extrabold">{invited} guests</dd>
               <dt className="text-ink-2">Collect until</dt>
               <dd className="m-0 font-extrabold">{formatUs(deadline)}</dd>
             </dl>
@@ -272,7 +293,7 @@ export function NewPartyWizard() {
       <Paywall
         open={paywall}
         invited={invited}
-        child={name}
+        honoree={name}
         onUpgrade={() => {
           setIsPro(true);
           setPaywall(false);

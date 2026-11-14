@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { HeroDemo } from "@/components/landing/hero-demo";
 import { ArrowRightIcon, QrIcon } from "@/components/icons";
 import { Key, NameTag, Note, Wordmark, cn, type TagKind } from "@/components/shell";
-import { KIDS, ROUTES } from "@/lib/demo";
+import { GUESTS, ROUTES } from "@/lib/demo";
 
 const ROSTER_TILT = [-2, 1, -1, 2, 0, -1.5, 1.5];
 const EXTERNAL = new Set(["Olivia", "Isabella", "Harper"]);
@@ -12,9 +12,9 @@ const NOT_YET = new Set(["Noah", "Ethan", "Wyatt"]);
 const quote = "font-display text-lg leading-[1.3] font-medium tracking-[-0.01em]";
 
 const PLANS = [
-  { name: "Free", text: "Up to 15 guests, one class collection at a time", price: "$0" },
-  { name: "Party Pro", text: "The whole class, automatic reminders, thank-you notes", price: "$9.99", per: "per party" },
-  { name: "Class Wallet", text: "Every class collection, the paid roster, a year-end report", price: "$49", per: "per school year" },
+  { name: "Free", text: "Up to 15 guests, one collection at a time", price: "$0" },
+  { name: "Party Pro", text: "Every guest, automatic reminders, thank-you notes", price: "$9.99", per: "per party" },
+  { name: "Group Wallet", text: "Every group collection, the paid roster, a year-end report", price: "$49", per: "per year" },
 ];
 
 export default function Landing() {
@@ -25,7 +25,7 @@ export default function Landing() {
         <nav aria-label="Main" className="flex flex-wrap items-center gap-2xs text-md font-bold">
           {[
             ["How it works", "#week"],
-            ["Room parents", "#parents"],
+            ["Groups", "#groups"],
             ["Pricing", "#pricing"],
           ].map(([label, href]) => (
             <a key={href} href={href} className="flex min-h-11 items-center px-sm text-ink no-underline">
@@ -40,14 +40,16 @@ export default function Landing() {
 
       <section id="top" className="wrap flex flex-wrap items-center gap-2xl pt-lg pb-2xl lg:min-h-[760px]">
         <div className="flex min-w-0 flex-[1_1_500px] flex-col gap-lg">
-          <h1 className="max-w-[11ch]">The class birthday gift, in one link</h1>
-          <p className="lead">Parents RSVP and chip in right from the class group chat.</p>
+          <h1 className="max-w-[12ch]">The group gift for any event, in one link</h1>
+          <p className="lead">
+            Birthdays, weddings, farewells, teacher thank-yous. Guests RSVP and chip in right from the group chat.
+          </p>
           <div className="flex flex-wrap gap-sm pt-xs">
             <Link className="btn btn--primary" href={ROUTES.newParty}>
-              Start a birthday gift
+              Start a gift
             </Link>
-            <Link className="btn" href={ROUTES.classWallet}>
-              I’m a room parent
+            <Link className="btn" href={ROUTES.groupWallet}>
+              I run a group
             </Link>
           </div>
         </div>
@@ -56,15 +58,15 @@ export default function Landing() {
 
       <section id="week" className="paper torn-top bg-paper-2 pt-(--section-gap) pb-(--section-gap-s)">
         <div className="wrap flex flex-col gap-2xl">
-          <h2 className="max-w-[14ch]">Your part of the birthday week</h2>
+          <h2 className="max-w-[14ch]">Your part of the week before the event</h2>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] border-t-2 border-ink">
             <WeekDay title="Monday" text="Name, date, place and the gift. About two minutes." first>
               <div className="mt-auto flex items-center gap-sm pt-md">
                 <QrIcon size={48} strokeWidth={1.8} />
-                <span className="text-sm font-extrabold">classgift.app/p/emma7k2q</span>
+                <span className="text-sm font-extrabold">chipin.app/p/emma7k2q</span>
               </div>
             </WeekDay>
-            <WeekDay title="Wednesday" text="AI drafts a gentle reminder for the quiet families. You read it, then send.">
+            <WeekDay title="Wednesday" text="AI drafts a gentle reminder for the quiet guests. You read it, then send.">
               <p className={cn(quote, "mt-auto pt-md")}>“Would love to know if Noah can come. The gift is optional.”</p>
             </WeekDay>
             <WeekDay title="Friday" text="The deadline. $300 buys the bike, the other $40 waits in her Dream Fund.">
@@ -77,7 +79,7 @@ export default function Landing() {
                 <span className="flex flex-[70] items-center justify-center bg-signal">$40</span>
               </div>
             </WeekDay>
-            <WeekDay title="Saturday" text="Every family gets a thank-you in Emma’s own words." last>
+            <WeekDay title="Saturday" text="Every guest gets a thank-you in Emma’s own words." last>
               <p className={cn(quote, "mt-auto pt-md")}>“Dear Liam, I’m going to ride it to school every day.”</p>
             </WeekDay>
           </div>
@@ -87,16 +89,16 @@ export default function Landing() {
       <section className="py-(--section-gap-l)">
         <div className="wrap flex flex-col gap-xl">
           <h2 className="max-w-[18ch] text-display">
-            Parents see the total and the headcount.
+            Guests see the total and the headcount.
             <span className="block pt-sm text-section text-accent">Never who gave what.</span>
           </h2>
-          <p className="lead">Chipping in stays optional, and every reminder says so. A family can RSVP and skip the gift.</p>
+          <p className="lead">Chipping in stays optional, and every reminder says so. A guest can RSVP and skip the gift.</p>
         </div>
       </section>
 
-      <section id="parents" className="paper torn on-dark bg-night py-(--section-gap) text-night-ink">
+      <section id="groups" className="paper torn on-dark bg-night py-(--section-gap) text-night-ink">
         <div className="wrap flex flex-col gap-2xl">
-          <h2 className="max-w-[16ch]">Turn the teacher’s email into a class collection</h2>
+          <h2 className="max-w-[16ch]">Turn any message into a group collection</h2>
 
           <div className="flex flex-wrap items-center gap-xl">
             <div className="min-w-0 flex-[1_1_340px]">
@@ -113,13 +115,13 @@ export default function Landing() {
               <h3 className="text-2xl">Spring museum trip</h3>
               <p className="text-sm font-bold text-night-muted">AI’s draft. You check it, then publish.</p>
               <div className="flex flex-wrap gap-xs">
-                {["$12 a family", "due 03/06", "25 families"].map((t) => (
+                {["$12 each", "due 03/06", "25 members"].map((t) => (
                   <span key={t} className="tag bg-night-rule text-night-ink">
                     {t}
                   </span>
                 ))}
               </div>
-              <Link className="btn btn--signal self-start" href={ROUTES.classWallet}>
+              <Link className="btn btn--signal self-start" href={ROUTES.groupWallet}>
                 Publish and share
               </Link>
             </div>
@@ -127,11 +129,11 @@ export default function Landing() {
 
           <div className="flex flex-col gap-lg pt-xl">
             <div className="flex flex-wrap items-baseline justify-between gap-md">
-              <h3 className="text-2xl">Teacher gift, $15 a family</h3>
+              <h3 className="text-2xl">Teacher gift, $15 each</h3>
               <span className="figure text-3xl text-signal">22/25</span>
             </div>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-sm">
-              {KIDS.map((n, i) => {
+              {GUESTS.map((n, i) => {
                 const kind: TagKind = NOT_YET.has(n) ? "open" : EXTERNAL.has(n) ? "venmo" : "paid";
                 return <NameTag key={n} name={n} kind={kind} tilt={ROSTER_TILT[i % ROSTER_TILT.length]} />;
               })}
@@ -193,7 +195,7 @@ export default function Landing() {
         <div className="wrap flex flex-wrap items-start gap-3xl">
           <div className="flex min-w-0 flex-[1_1_340px] flex-col gap-lg">
             <h2>What it costs</h2>
-            <p className="lead">We never take a cut of the gift. Parents’ money goes to the organizer’s Stripe account.</p>
+            <p className="lead">We never take a cut of the gift. Guests’ money goes to the organizer’s Stripe account.</p>
           </div>
           <table aria-label="Plans and prices" className="min-w-0 flex-[1_1_600px] border-collapse text-body">
             <tbody>
@@ -228,13 +230,13 @@ export default function Landing() {
       <section className="pt-(--section-gap) pb-3xl">
         <div className="wrap">
           <div className="paper torn on-accent flex flex-wrap items-center justify-between gap-xl bg-accent px-lg py-3xl text-accent-ink md:px-2xl">
-            <h2 className="max-w-[14ch] flex-[1_1_460px]">Whose birthday is next in your class?</h2>
+            <h2 className="max-w-[14ch] flex-[1_1_460px]">What are you celebrating next?</h2>
             <div className="flex flex-wrap gap-sm">
               <Link className="btn btn--signal" href={ROUTES.newParty}>
-                Start a birthday gift
+                Start a gift
               </Link>
-              <Link className="btn" href={ROUTES.classWallet}>
-                Set up my class
+              <Link className="btn" href={ROUTES.groupWallet}>
+                Set up my group
               </Link>
             </div>
           </div>
@@ -242,8 +244,8 @@ export default function Landing() {
       </section>
 
       <footer className="wrap flex flex-wrap items-center justify-between gap-lg pt-lg pb-2xl text-sm text-ink-2">
-        <span className="font-display text-lg font-semibold text-ink">class gift</span>
-        <p>Payments run on Stripe. For kids we keep a first name and a party date.</p>
+        <span className="font-display text-lg font-semibold text-ink">chip in</span>
+        <p>Payments run on Stripe. We keep a first name and an event date, nothing more.</p>
         <nav aria-label="Footer" className="flex gap-2xs">
           {["Privacy", "Terms", "Help"].map((l) => (
             <a key={l} href={`#${l.toLowerCase()}`} className="flex min-h-11 items-center px-xs text-ink-2">
