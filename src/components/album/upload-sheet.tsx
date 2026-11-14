@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CameraIcon, CheckIcon, CloseIcon, ImageIcon, RefreshIcon } from "@/components/icons";
 import type { AlbumPhoto } from "@/lib/album";
+import { useI18n } from "@/lib/i18n";
 import { prepare, readStoredGuest, uploadPhoto, writeStoredGuest } from "@/lib/use-album";
 
 type Item = {
@@ -28,6 +29,7 @@ export function UploadSheet({
   onClose: () => void;
   onUploaded: (p: AlbumPhoto) => void;
 }) {
+  const { t, err } = useI18n();
   const [name, setName] = useState(() => readStoredGuest());
   const [items, setItems] = useState<Item[]>([]);
   const [hint, setHint] = useState("");
@@ -82,14 +84,14 @@ export function UploadSheet({
   const pick = (files: FileList | null) => {
     if (!files?.length) return;
     const chosen = Array.from(files).filter((f) => f.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));
-    if (chosen.length < files.length) setHint("Only photos for now, videos were skipped.");
+    if (chosen.length < files.length) setHint(t("up.onlyPhotos"));
     const room = MAX_FILES - items.length;
     const next: Item[] = chosen.slice(0, Math.max(0, room)).map((file, i) => {
       const preview = URL.createObjectURL(file);
       previews.current.push(preview);
       return { key: `${Date.now()}-${i}-${file.name}`, file, preview, pct: 0, status: "waiting" };
     });
-    if (chosen.length > room) setHint(`Up to ${MAX_FILES} photos at a time.`);
+    if (chosen.length > room) setHint(t("up.max", { n: MAX_FILES }));
     setItems((list) => [...list, ...next]);
     queue.current.push(...next);
     pump();
@@ -97,7 +99,7 @@ export function UploadSheet({
 
   const openPicker = (which: "camera" | "gallery") => {
     if (!name.trim()) {
-      setHint("Type your name first, so friends know who shared");
+      setHint(t("up.nameFirst"));
       nameRef.current?.focus();
       return;
     }
@@ -117,12 +119,12 @@ export function UploadSheet({
   const busy = items.some((i) => i.status === "waiting" || i.status === "uploading");
   const status =
     items.length === 0
-      ? "Photos show up in the album a few seconds after they upload."
+      ? t("up.idle")
       : failed.length
-        ? `${done} of ${items.length} uploaded. ${failed[0].error}. Tap it to try again.`
+        ? t("up.failed", { done, n: items.length, err: err(failed[0].error ?? "") })
         : busy
-          ? `${done} of ${items.length} uploaded. Keep this open until they finish.`
-          : `All ${items.length} ${items.length === 1 ? "photo is" : "photos are"} in the album.`;
+          ? t("up.busy", { done, n: items.length })
+          : t("up.all", { n: items.length });
 
   return (
     <div className="fixed inset-0 z-(--z-modal) flex items-end justify-center bg-scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -134,15 +136,15 @@ export function UploadSheet({
       >
         <div className="flex items-center justify-between">
           <h2 id="up-title" className="text-2xl">
-            Add photos
+            {t("up.title")}
           </h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="btn btn--small w-11 p-0">
+          <button type="button" onClick={onClose} aria-label={t("close")} className="btn btn--small w-11 p-0">
             <CloseIcon size={18} />
           </button>
         </div>
 
         <div className="field">
-          <label htmlFor="who">Your name</label>
+          <label htmlFor="who">{t("up.nameL")}</label>
           <input
             ref={nameRef}
             id="who"
@@ -150,21 +152,21 @@ export function UploadSheet({
             type="text"
             maxLength={40}
             autoComplete="name"
-            placeholder="For example, Rachel"
+            placeholder={t("up.nameP")}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <span className="label">So friends know who shared. Guests of this event will see your photos.</span>
+          <span className="label">{t("up.nameNote")}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-sm">
           <button type="button" className="choice flex min-h-24 flex-col items-center justify-center gap-xs" onClick={() => openPicker("camera")}>
             <CameraIcon size={28} strokeWidth={2} />
-            Take photo
+            {t("up.take")}
           </button>
           <button type="button" className="choice flex min-h-24 flex-col items-center justify-center gap-xs" onClick={() => openPicker("gallery")}>
             <ImageIcon size={28} strokeWidth={2} />
-            Choose from gallery
+            {t("up.gallery")}
           </button>
         </div>
         <input
@@ -203,7 +205,7 @@ export function UploadSheet({
                     height="56"
                     viewBox="0 0 48 48"
                     role="img"
-                    aria-label={it.status === "waiting" ? "Waiting to upload" : `Uploading, ${it.pct}%`}
+                    aria-label={it.status === "waiting" ? t("up.waiting") : t("up.uploading", { pct: it.pct })}
                     className="absolute inset-0 m-auto"
                   >
                     <circle cx="24" cy="24" r="19" fill="none" strokeWidth="5" stroke="var(--color-paper)" strokeOpacity="0.5" />
@@ -219,14 +221,14 @@ export function UploadSheet({
                       transform="rotate(-90 24 24)"
                     />
                     <text x="24" y="28" textAnchor="middle" fontSize="12" fontWeight="800" fill="var(--color-paper)">
-                      {it.status === "waiting" ? "Next" : `${it.pct}%`}
+                      {it.status === "waiting" ? t("up.next") : `${it.pct}%`}
                     </text>
                   </svg>
                 )}
                 {it.status === "done" && (
                   <span
                     role="img"
-                    aria-label="Uploaded"
+                    aria-label={t("up.uploaded")}
                     className="absolute right-2xs bottom-2xs flex size-8 items-center justify-center rounded-pill bg-mint text-mint-ink"
                   >
                     <CheckIcon size={18} />
@@ -236,7 +238,7 @@ export function UploadSheet({
                   <button
                     type="button"
                     onClick={() => retry(it)}
-                    aria-label="Retry this photo"
+                    aria-label={t("up.retry")}
                     className="absolute inset-0 m-auto flex size-14 items-center justify-center rounded-pill border-0 bg-paper text-error"
                   >
                     <RefreshIcon size={24} />
@@ -252,7 +254,7 @@ export function UploadSheet({
         </p>
 
         <button type="button" onClick={onClose} className="btn btn--primary btn--block min-h-14 text-lg">
-          {items.length && !busy ? "See them in the album" : "Close"}
+          {items.length && !busy ? t("up.see") : t("close")}
         </button>
       </div>
     </div>

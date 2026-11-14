@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { GiftIcon } from "@/components/icons";
+import { LangSwitch, useT } from "@/lib/i18n";
+import type { MessageKey } from "@/lib/i18n/dict";
 import { ROUTES } from "@/lib/demo";
 
 export function cn(...parts: Array<string | false | null | undefined>) {
@@ -21,10 +25,10 @@ export function Wordmark({ withMark = false, className }: { withMark?: boolean; 
 
 type NavKey = "parties" | "dream" | "group";
 
-const NAV: Array<{ key: NavKey; label: string; href: string }> = [
-  { key: "parties", label: "Parties", href: "/parties" },
-  { key: "dream", label: "Dream Fund", href: ROUTES.dream },
-  { key: "group", label: "Group Wallet", href: ROUTES.groupWallet },
+const NAV: Array<{ key: NavKey; label: MessageKey; href: string }> = [
+  { key: "parties", label: "nav.parties", href: "/parties" },
+  { key: "dream", label: "nav.dream", href: ROUTES.dream },
+  { key: "group", label: "nav.group", href: ROUTES.groupWallet },
 ];
 
 /** Шапка кабинета организатора события и группы */
@@ -39,11 +43,12 @@ export function AppHeader({
   avatarLabel: string;
   avatarClass: string;
 }) {
+  const t = useT();
   return (
     <header className="wrap flex flex-wrap items-center justify-between gap-md py-md">
       <div className="flex flex-wrap items-center gap-x-lg gap-y-2xs">
         <Wordmark />
-        <nav aria-label="App" className="flex flex-wrap gap-2xs font-bold">
+        <nav aria-label={t("nav.app")} className="flex flex-wrap gap-2xs font-bold">
           {NAV.map((n) => {
             const on = n.key === active;
             return (
@@ -56,18 +61,21 @@ export function AppHeader({
                   on ? "rounded-pill bg-ink px-md text-paper hover:text-paper" : "px-sm text-ink hover:text-accent",
                 )}
               >
-                {n.label}
+                {t(n.label)}
               </Link>
             );
           })}
         </nav>
       </div>
-      <span
-        aria-label={avatarLabel}
-        className={cn("flex size-11 items-center justify-center rounded-pill font-extrabold max-sm:hidden", avatarClass)}
-      >
-        {avatar}
-      </span>
+      <div className="flex items-center gap-sm">
+        <LangSwitch />
+        <span
+          aria-label={avatarLabel}
+          className={cn("flex size-11 items-center justify-center rounded-pill font-extrabold max-sm:hidden", avatarClass)}
+        >
+          {avatar}
+        </span>
+      </div>
     </header>
   );
 }

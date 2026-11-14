@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { CloseIcon } from "@/components/icons";
+import { useT } from "@/lib/i18n";
 
 /** Экран 10: апгрейд при > 15 гостях. Stripe Checkout подключается на кнопки. */
 export function Paywall({
@@ -17,6 +18,7 @@ export function Paywall({
   onUpgrade: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function Paywall({
         <div className="paper torn-note relative flex flex-col gap-xl bg-paper px-lg pt-2xl pb-xl md:px-xl">
           <button
             type="button"
-            aria-label="Close"
+            aria-label={t("close")}
             onClick={onClose}
             className="btn btn--small absolute top-lg right-lg w-11 p-0"
           >
@@ -49,25 +51,25 @@ export function Paywall({
 
           <div className="flex flex-col gap-sm pr-2xl">
             <h1 id="pw-title" className="max-w-[20ch] text-3xl">
-              {invited} guests are invited. Free covers 15.
+              {t("pw.title", { n: invited })}
             </h1>
-            <p className="lead">Party Pro opens this party to every guest for $9.99, once.</p>
+            <p className="lead">{t("pw.lead")}</p>
           </div>
 
           <div className="grid gap-xl border-t-2 border-ink pt-lg md:grid-cols-2">
             <section aria-labelledby="pro" className="flex flex-col gap-sm">
               <h2 id="pro" className="text-xl">
-                Party Pro
+                {t("pw.pro")}
               </h2>
               <p>
                 <span className="num font-display text-3xl font-semibold tracking-[-0.03em] text-accent">$9.99</span>{" "}
-                <span className="label">for this party</span>
+                <span className="label">{t("pw.proPer")}</span>
               </p>
               <p className="text-ink-2">
-                All {invited} guests, reminders that send themselves, a thank-you from {honoree} to everyone who chipped in.
+                {t("pw.proT", { n: invited, name: honoree })}
               </p>
               <button type="button" onClick={onUpgrade} className="btn btn--primary mt-auto self-start">
-                Upgrade this party
+                {t("pw.proBtn")}
               </button>
             </section>
             <section
@@ -75,27 +77,27 @@ export function Paywall({
               className="flex flex-col gap-sm md:border-l md:border-edge md:pl-xl max-md:border-t max-md:border-edge max-md:pt-lg"
             >
               <h2 id="gw" className="text-xl">
-                Group Wallet
+                {t("pw.gw")}
               </h2>
               <p>
                 <span className="num font-display text-3xl font-semibold tracking-[-0.03em]">$49</span>{" "}
-                <span className="label">a year</span>
+                <span className="label">{t("pw.gwPer")}</span>
               </p>
-              <p className="text-ink-2">For group organizers (a class, a team, an office, a club): every collection, the paid roster, a year-end report.</p>
+              <p className="text-ink-2">{t("pw.gwT")}</p>
               <button type="button" onClick={onUpgrade} className="btn mt-auto self-start">
-                Get Group Wallet
+                {t("pw.gwBtn")}
               </button>
             </section>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-md">
-            <p className="label">Checkout by Stripe. We never charge a fee on contributions.</p>
+            <p className="label">{t("pw.foot")}</p>
             <button
               type="button"
               onClick={onClose}
               className="flex min-h-11 items-center border-0 bg-transparent font-extrabold whitespace-nowrap text-accent-deep underline decoration-[1.5px] underline-offset-[0.18em]"
             >
-              Keep 15 guests for free
+              {t("pw.keep")}
             </button>
           </div>
         </div>

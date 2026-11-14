@@ -21,7 +21,8 @@ export type GuestStatus = "paid" | "external" | "yes" | "no" | "open";
 
 export type Guest = { name: string; status: GuestStatus; amountCents: number };
 
-export type FeedItem = { id: string; guest: string; text: string; amountCents: number };
+export type FeedKind = "paid" | "external" | "yes" | "no" | "open";
+export type FeedItem = { id: string; guest: string; text: string; amountCents: number; kind: FeedKind };
 
 export type PartyState = {
   raisedCents: number;
@@ -69,6 +70,12 @@ export const SEED_EVENTS: NewEvent[] = [
   ...SEED_RSVP.map(([guest, rsvp]): NewEvent => ({ guest, rsvp, amountCents: 0, tipCents: 0, method: null })),
 ];
 
+export function eventKind(e: Pick<PartyEvent, "rsvp" | "amountCents" | "method">): FeedKind {
+  if (e.amountCents > 0) return e.method === "external" ? "external" : "paid";
+  return e.rsvp === "yes" ? "yes" : e.rsvp === "no" ? "no" : "open";
+}
+
+/** Английский текст — запасной: на экране ленту строит клиент по kind и текущему языку */
 export function eventText(e: Pick<PartyEvent, "guest" | "rsvp" | "amountCents" | "method">) {
   const who = e.guest;
   if (e.amountCents > 0) return e.method === "external" ? `${who} paid by Venmo` : `${who} chipped in`;
@@ -116,7 +123,7 @@ export function buildState(events: PartyEvent[], roster: readonly string[] = [],
     .reverse()
     .map((e) => {
       const guest = canonicalGuest(e.guest);
-      return { id: e.id, guest, text: eventText({ ...e, guest }), amountCents: e.amountCents };
+      return { id: e.id, guest, text: eventText({ ...e, guest }), amountCents: e.amountCents, kind: eventKind(e) };
     });
 
   const last = sorted[sorted.length - 1];

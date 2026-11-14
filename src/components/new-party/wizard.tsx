@@ -5,14 +5,16 @@ import { useState, type ReactNode } from "react";
 import { BikeIcon, PaletteIcon, RefreshIcon, TelescopeIcon } from "@/components/icons";
 import { Paywall } from "@/components/paywall";
 import { Wordmark, cn } from "@/components/shell";
+import { LangSwitch, useI18n } from "@/lib/i18n";
+import type { MessageKey } from "@/lib/i18n/dict";
 import { OCCASIONS, partyUrls, type Occasion } from "@/lib/party";
 
 type Step = 1 | 2 | 3;
 
-const IDEAS = [
-  { title: "A 20-inch bike", price: 300, why: "She has outgrown the scooter and asked for one by name.", tile: "var(--color-signal)", Icon: BikeIcon },
-  { title: "A first telescope", price: 249, why: "For when the playground turns into lying on the grass looking up.", tile: "var(--color-paper-3)", Icon: TelescopeIcon },
-  { title: "Art set and easel", price: 180, why: "Leaves room for a bigger Dream Fund after the party.", tile: "var(--color-mint)", Icon: PaletteIcon },
+const IDEAS: Array<{ title: string; price: number; why: MessageKey; tile: string; Icon: typeof BikeIcon }> = [
+  { title: "A 20-inch bike", price: 300, why: "w.why1", tile: "var(--color-signal)", Icon: BikeIcon },
+  { title: "A first telescope", price: 249, why: "w.why2", tile: "var(--color-paper-3)", Icon: TelescopeIcon },
+  { title: "Art set and easel", price: 180, why: "w.why3", tile: "var(--color-mint)", Icon: PaletteIcon },
 ];
 
 const FREE_GUESTS = 15;
@@ -25,6 +27,7 @@ function isoPlusDays(days: number, from = new Date()) {
 
 export function NewPartyWizard() {
   const router = useRouter();
+  const { t, err, lit, title, occasion: occLabel, dayShort, md, mdy, time: fmtTime } = useI18n();
   const [step, setStep] = useState<Step>(1);
   const [occasion, setOccasion] = useState<Occasion>("Birthday");
   const [honoree, setHonoree] = useState("");
@@ -46,16 +49,16 @@ export function NewPartyWizard() {
   const [isPro, setIsPro] = useState(false);
   const [paywall, setPaywall] = useState(false);
 
-  const name = honoree.trim() || "Guest of honor";
+  const name = honoree.trim() || t("w.guestOfHonor");
   const isBirthday = occasion === "Birthday";
-  const eventName = `${name}’s ${occasion === "Other" ? "event" : occasion.toLowerCase()}`;
+  const eventName = title({ occasion, honoree: name, age: null });
   const budget = invited * 20;
-  const goalTitle = manual ? manualTitle || "Your gift" : IDEAS[picked].title;
+  const goalTitle = manual ? manualTitle || t("w.yourGift") : lit(IDEAS[picked].title);
   const goalPrice = manual ? Number(manualPrice) || 0 : IDEAS[picked].price;
 
   const toEvent = () => {
     if (!honoree.trim()) {
-      setError("Type a first name for who it’s for");
+      setError(t("w.errName"));
       return;
     }
     setError("");
@@ -70,7 +73,7 @@ export function NewPartyWizard() {
     if (!honoree.trim()) return toEvent();
     if (!place.trim() || !date || !deadline) {
       setStep(2);
-      setError("Add the date, the place and the collection deadline");
+      setError(t("w.errEvent"));
       return;
     }
     setError("");
@@ -80,7 +83,7 @@ export function NewPartyWizard() {
 
   const create = async () => {
     if (manual && (!manualTitle.trim() || goalPrice < 5)) {
-      setError("Name the gift and set a price from $5");
+      setError(t("w.errGift"));
       return;
     }
     setError("");
@@ -93,7 +96,7 @@ export function NewPartyWizard() {
           occasion,
           honoree: honoree.trim(),
           age: isBirthday ? Number(age) || null : null,
-          gift: goalTitle,
+          gift: manual ? goalTitle : IDEAS[picked].title,
           goal: goalPrice,
           date,
           time,
@@ -106,13 +109,13 @@ export function NewPartyWizard() {
       });
       const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
       if (!res.ok || !data.id) {
-        setError(data.error ?? "Couldn’t create the page, try again");
+        setError(data.error ? err(data.error) : t("w.errCreate"));
         setCreating(false);
         return;
       }
       router.push(partyUrls(data.id).dashboard);
     } catch {
-      setError("No connection, try again");
+      setError(err("No connection, try again"));
       setCreating(false);
     }
   };
@@ -124,15 +127,16 @@ export function NewPartyWizard() {
 
   const steps: Array<[Step, string]> = [
     [1, name],
-    [2, "Event"],
-    [3, "Gift"],
+    [2, t("w.stepEvent")],
+    [3, t("w.stepGift")],
   ];
 
   return (
     <div className="paper min-h-dvh w-full bg-paper text-ink">
       <header className="wrap flex flex-wrap items-center justify-between gap-md py-md">
         <Wordmark />
-        <ol aria-label="Steps" className="m-0 flex list-none gap-xs p-0 text-sm font-bold">
+        <LangSwitch />
+        <ol aria-label={t("w.steps")} className="m-0 flex list-none gap-xs p-0 text-sm font-bold">
           {steps.map(([n, label]) => (
             <li key={n}>
               <button
@@ -155,8 +159,8 @@ export function NewPartyWizard() {
         <div className="flex min-w-0 flex-[999_1_600px] flex-col gap-xl">
           {step === 1 && (
             <>
-              <Heading title="What are we celebrating?" lead="The occasion and a first name. We keep nothing else about the person." />
-              <div role="group" aria-label="Occasion" className="flex flex-wrap gap-xs">
+              <Heading title={t("w.h1")} lead={t("w.l1")} />
+              <div role="group" aria-label={t("w.occ")} className="flex flex-wrap gap-xs">
                 {OCCASIONS.map((o) => (
                   <button
                     key={o}
@@ -165,64 +169,64 @@ export function NewPartyWizard() {
                     onClick={() => setOccasion(o)}
                     className="choice px-md"
                   >
-                    {o}
+                    {occLabel(o)}
                   </button>
                 ))}
               </div>
               <div className={cn("grid gap-md", isBirthday && "sm:grid-cols-[2fr_1fr]")}>
-                <Field id="honoree" label="Who is it for? First name">
+                <Field id="honoree" label={t("w.who")}>
                   <input
                     id="honoree"
                     className="input"
                     maxLength={40}
-                    placeholder="For example, Emma"
+                    placeholder={t("w.whoP")}
                     value={honoree}
                     onChange={(e) => setHonoree(e.target.value)}
                   />
                 </Field>
                 {isBirthday && (
-                  <Field id="age" label="Turning">
+                  <Field id="age" label={t("w.turning")}>
                     <input id="age" className="input" type="number" min={1} max={120} placeholder="7" value={age} onChange={(e) => setAge(e.target.value)} />
                   </Field>
                 )}
               </div>
               <button type="button" onClick={toEvent} className="btn btn--primary self-start">
-                Next: the event
+                {t("w.next1")}
               </button>
             </>
           )}
 
           {step === 2 && (
             <>
-              <Heading title={`When is ${eventName}?`} lead="Guests see the date and place on the invite page." />
+              <Heading title={t("w.h2")} lead={t("w.l2")} />
               <div className="grid gap-md sm:grid-cols-2">
-                <Field id="date" label="Date">
+                <Field id="date" label={t("w.date")}>
                   <input id="date" className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
                 </Field>
-                <Field id="time" label="Time">
+                <Field id="time" label={t("w.time")}>
                   <input id="time" className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
                 </Field>
-                <Field id="place" label="Place" wide>
+                <Field id="place" label={t("w.place")} wide>
                   <input
                     id="place"
                     className="input"
                     maxLength={80}
-                    placeholder="For example, Riverside Park"
+                    placeholder={t("w.placeP")}
                     value={place}
                     onChange={(e) => setPlace(e.target.value)}
                   />
                 </Field>
-                <Field id="place-note" label="How to find it (optional)" wide>
+                <Field id="place-note" label={t("w.note")} wide>
                   <input
                     id="place-note"
                     className="input"
                     maxLength={80}
-                    placeholder="Pavilion B, by the playground"
+                    placeholder={t("w.noteP")}
                     value={placeNote}
                     onChange={(e) => setPlaceNote(e.target.value)}
                   />
                 </Field>
-                <Field id="invited" label="Guests invited">
+                <Field id="invited" label={t("w.invited")}>
                   <input
                     id="invited"
                     className="input"
@@ -233,15 +237,15 @@ export function NewPartyWizard() {
                     onChange={(e) => setInvited(Math.min(200, Math.max(1, Number(e.target.value) || 1)))}
                   />
                 </Field>
-                <Field id="deadline" label="Collect money until">
+                <Field id="deadline" label={t("w.deadline")}>
                   <input id="deadline" className="input" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
                 </Field>
               </div>
               {invited > FREE_GUESTS && !isPro && (
-                <p className="label">Free covers up to {FREE_GUESTS} guests. You can upgrade on the next step.</p>
+                <p className="label">{t("w.free", { n: FREE_GUESTS })}</p>
               )}
               <button type="button" onClick={toGift} className="btn btn--primary self-start">
-                Next: the gift
+                {t("w.next2")}
               </button>
             </>
           )}
@@ -249,37 +253,35 @@ export function NewPartyWizard() {
           {step === 3 && (
             <>
               <Heading
-                title={`What would ${name} love?`}
-                lead={`${invited} guests at about $20 each, so up to $${budget}. AI Dream Finder suggests three gifts in that range.`}
+                title={t("w.h3", { name })}
+                lead={t("w.l3", { n: invited, budget })}
                 narrow
               />
 
               <div className="flex flex-col gap-sm">
                 <div className="field">
-                  <label htmlFor="likes">What is {name} into right now?</label>
+                  <label htmlFor="likes">{t("w.likes", { name })}</label>
                   <textarea
                     id="likes"
                     className="input"
                     rows={2}
-                    placeholder="Rides a scooter everywhere, loves the playground"
+                    placeholder={t("w.likesP")}
                     value={likes}
                     onChange={(e) => setLikes(e.target.value)}
                   />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-sm">
-                  <span className="label">
-                    Only the first name, the occasion{isBirthday ? " and the age" : ""} go to the AI.
-                  </span>
+                  <span className="label">{isBirthday ? t("w.aiAge") : t("w.ai")}</span>
                   <button type="button" onClick={suggestAgain} disabled={thinking} className="btn btn--small">
                     <RefreshIcon size={18} className={thinking ? "animate-spin" : undefined} />
-                    {thinking ? "Thinking…" : "Three new ideas"}
+                    {thinking ? t("w.thinking") : t("w.newIdeas")}
                   </button>
                 </div>
               </div>
 
               <div
                 role="radiogroup"
-                aria-label="Gift ideas"
+                aria-label={t("w.ideas")}
                 aria-busy={thinking}
                 className={cn("grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-md transition-opacity", thinking && "opacity-40")}
               >
@@ -308,8 +310,8 @@ export function NewPartyWizard() {
                       >
                         <idea.Icon size={34} />
                       </span>
-                      <span className="font-display text-xl leading-[1.1] font-semibold tracking-[-0.02em]">{idea.title}</span>
-                      <span className="text-md leading-normal text-ink-2">{idea.why}</span>
+                      <span className="font-display text-xl leading-[1.1] font-semibold tracking-[-0.02em]">{lit(idea.title)}</span>
+                      <span className="text-md leading-normal text-ink-2">{t(idea.why)}</span>
                       <span className="num mt-auto font-display text-2xl font-semibold">${idea.price}</span>
                     </button>
                   );
@@ -318,16 +320,16 @@ export function NewPartyWizard() {
 
               {manual ? (
                 <div className="grid gap-md sm:grid-cols-[2fr_1fr]">
-                  <Field id="mtitle" label="The gift">
+                  <Field id="mtitle" label={t("w.mGift")}>
                     <input
                       id="mtitle"
                       className="input"
-                      placeholder="LEGO Friends treehouse"
+                      placeholder={t("w.mGiftP")}
                       value={manualTitle}
                       onChange={(e) => setManualTitle(e.target.value)}
                     />
                   </Field>
-                  <Field id="mprice" label="Price, $">
+                  <Field id="mprice" label={t("w.mPrice")}>
                     <input
                       id="mprice"
                       className="input"
@@ -345,7 +347,7 @@ export function NewPartyWizard() {
                   onClick={() => setManual(true)}
                   className="flex min-h-11 items-center self-start border-0 bg-transparent p-0 font-extrabold text-accent-deep underline decoration-[1.5px] underline-offset-[0.18em]"
                 >
-                  I already know the gift
+                  {t("w.know")}
                 </button>
               )}
             </>
@@ -354,23 +356,23 @@ export function NewPartyWizard() {
 
         <aside className="sheet min-w-0 flex-[1_1_320px]" style={{ rotate: "1deg" }}>
           <div className="paper torn-note flex flex-col gap-md bg-signal-soft px-lg py-xl">
-            <h2 className="text-2xl">{isBirthday && age ? `${name} turns ${age}` : eventName}</h2>
+            <h2 className="text-2xl">{isBirthday && age ? title({ occasion, honoree: name, age: Number(age) }) : eventName}</h2>
             <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-md gap-y-xs text-md">
-              <dt className="text-ink-2">When</dt>
-              <dd className="m-0 font-extrabold">{date ? `${formatDay(date)}, ${formatTime(time)}` : "—"}</dd>
-              <dt className="text-ink-2">Where</dt>
+              <dt className="text-ink-2">{t("w.sideWhen")}</dt>
+              <dd className="m-0 font-extrabold">{date ? `${dayShort(date)} ${md(date)}, ${fmtTime(time)}` : "—"}</dd>
+              <dt className="text-ink-2">{t("w.sideWhere")}</dt>
               <dd className="m-0 font-extrabold">{place || "—"}</dd>
-              <dt className="text-ink-2">Invited</dt>
-              <dd className="m-0 font-extrabold">{invited} guests</dd>
-              <dt className="text-ink-2">Collect until</dt>
-              <dd className="m-0 font-extrabold">{formatUs(deadline)}</dd>
+              <dt className="text-ink-2">{t("w.sideInvited")}</dt>
+              <dd className="m-0 font-extrabold">{t("w.sideGuests", { n: invited })}</dd>
+              <dt className="text-ink-2">{t("w.sideUntil")}</dt>
+              <dd className="m-0 font-extrabold">{mdy(deadline)}</dd>
             </dl>
             <div className="flex flex-col gap-2xs border-t-2 border-dashed border-signal-deep pt-md">
-              <span className="font-extrabold">{step === 3 ? goalTitle : "The gift comes next"}</span>
+              <span className="font-extrabold">{step === 3 ? goalTitle : t("w.giftNext")}</span>
               <span className="num font-display text-3xl leading-[1.05] font-semibold tracking-[-0.03em]">
                 {step === 3 ? `$${goalPrice}` : "—"}
               </span>
-              <span className="label text-ink-2">The goal, editable until someone chips in</span>
+              <span className="label text-ink-2">{t("w.goalNote")}</span>
             </div>
             {error && (
               <p role="alert" className="text-sm font-bold text-error">
@@ -379,11 +381,11 @@ export function NewPartyWizard() {
             )}
             {step === 3 ? (
               <button type="button" onClick={create} disabled={creating} className="btn btn--primary btn--block">
-                {creating ? "Creating…" : "Get the link and QR code"}
+                {creating ? t("w.creating") : t("w.create")}
               </button>
             ) : (
               <button type="button" onClick={() => (step === 1 ? toEvent() : toGift())} className="btn btn--primary btn--block">
-                Continue
+                {t("w.cont")}
               </button>
             )}
           </div>
@@ -423,29 +425,4 @@ function Field({ id, label, wide, children }: { id: string; label: string; wide?
       {children}
     </div>
   );
-}
-
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function parseIso(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return y && m && d ? { y, m, d, dow: DAYS[new Date(y, m - 1, d).getDay()] } : null;
-}
-
-const pad = (n: number) => String(n).padStart(2, "0");
-
-function formatUs(iso: string) {
-  const p = parseIso(iso);
-  return p ? `${pad(p.m)}/${pad(p.d)}/${p.y}` : "—";
-}
-
-function formatDay(iso: string) {
-  const p = parseIso(iso);
-  return p ? `${p.dow} ${pad(p.m)}/${pad(p.d)}` : "—";
-}
-
-function formatTime(t: string) {
-  const [h, m] = t.split(":").map(Number);
-  if (Number.isNaN(h)) return "";
-  return `${((h + 11) % 12) + 1}:${pad(m || 0)} ${h >= 12 ? "PM" : "AM"}`;
 }

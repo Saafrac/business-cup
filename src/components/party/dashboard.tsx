@@ -5,26 +5,31 @@ import { useState } from "react";
 import { CopyIcon, QrIcon } from "@/components/icons";
 import { AppHeader, Bar, Key, NameTag, Note, SWATCH, type TagKind } from "@/components/shell";
 import { TILT } from "@/lib/demo";
-import { dayShort, giftShort, goalUsd, mmdd, partyTitle, partyUrls, type PartyInfo } from "@/lib/party";
-import { usdShort, type GuestStatus, type PartyState } from "@/lib/party-state";
+import { useI18n, type TFn } from "@/lib/i18n";
+import type { MessageKey } from "@/lib/i18n/dict";
+import { goalUsd, partyUrls, type PartyInfo } from "@/lib/party";
+import { usdShort, type FeedItem, type GuestStatus, type PartyState } from "@/lib/party-state";
 import { useOrigin } from "@/lib/use-demo";
 import { useParty } from "@/lib/use-party";
 
 // Venmo в дашборде — тоже «оплачено» (зелёная плитка), только подпись другая
-const LOOK: Record<GuestStatus, [TagKind, string]> = {
-  paid: ["paid", "Paid"],
-  external: ["paid", "Paid by Venmo"],
-  yes: ["yes", "Coming"],
-  no: ["no", "Can’t come"],
-  open: ["open", "No answer"],
+const LOOK: Record<GuestStatus, [TagKind, MessageKey]> = {
+  paid: ["paid", "d.paid"],
+  external: ["paid", "d.paidExt"],
+  yes: ["yes", "d.coming"],
+  no: ["no", "d.no"],
+  open: ["open", "d.open"],
 };
 
-function listNames(names: string[]) {
+function listNames(t: TFn, names: string[]) {
   if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return `${names.slice(0, -1).join(", ")} ${t("d.and")} ${names[names.length - 1]}`;
 }
 
+const feedText = (t: TFn, f: FeedItem) => t(`fe.${f.kind}` as MessageKey, { who: f.guest });
+
 export function Dashboard({ party, initial }: { party: PartyInfo; initial: PartyState }) {
+  const { t, title, lit, giftShort, dayShort, md } = useI18n();
   const { state } = useParty(party.id, initial);
   const urls = partyUrls(party.id);
   const goal = goalUsd(party);
@@ -38,7 +43,7 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
   const quiet = state.guests.filter((g) => g.status === "open").slice(0, 3).map((g) => g.name);
   const nudge =
     edited ??
-    `Hi! ${partyTitle(party)}: ${dayShort(party.date)} ${mmdd(party.date)} at ${party.place}. Would love to know if you can come. Everyone is chipping in for the ${short}, totally optional.`;
+    t("d.nudge", { title: title(party), day: dayShort(party.date), date: md(party.date), place: lit(party.place), gift: short });
   const link = `${origin}${urls.guest}`;
 
   const copy = async () => {
@@ -53,7 +58,7 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
 
   return (
     <div className="paper min-h-dvh w-full bg-paper text-ink">
-      <AppHeader active="parties" avatar="S" avatarLabel="Signed in as Sarah" avatarClass="bg-signal-soft" />
+      <AppHeader active="parties" avatar="S" avatarLabel={t("sh.signedSarah")} avatarClass="bg-signal-soft" />
 
       <div className="wrap flex flex-col gap-2xl pt-md pb-3xl">
         <section
@@ -63,21 +68,21 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
           <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-md">
             <div className="flex flex-wrap items-center gap-sm">
               <h1 id="party" className="text-display-s">
-                {partyTitle(party)}
+                {title(party)}
               </h1>
               <span role="status" className="tag bg-accent-ink text-ink">
-                Open until {mmdd(party.deadline)}
+                {t("d.openUntil", { date: md(party.deadline) })}
               </span>
             </div>
             <div className="flex flex-wrap items-baseline gap-md">
               <span className="figure text-figure">{usdShort(state.raisedCents)}</span>
               <span className="text-lg font-extrabold">
-                of ${goal} for the {short}
+                {t("d.ofFor", { goal, gift: short })}
               </span>
             </div>
             <Bar
               ratio={state.raisedCents / party.goalCents}
-              label={`${usdShort(state.raisedCents)} of $${goal} raised`}
+              label={t("d.raisedAria", { raised: usdShort(state.raisedCents), goal })}
               className="max-w-[560px]"
               style={{ backgroundColor: "var(--color-accent-deep)" }}
               fillStyle={{ backgroundColor: "var(--color-signal)" }}
@@ -86,23 +91,23 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
           <div className="flex flex-wrap gap-sm">
             <Link className="btn" href={urls.qr}>
               <QrIcon size={18} />
-              QR for a screen
+              {t("d.qr")}
             </Link>
             <Link className="btn" href={urls.albumManage}>
-              Photo album
+              {t("d.album")}
             </Link>
             <Link className="btn btn--signal" href={urls.payout}>
-              Split the money
+              {t("d.split")}
             </Link>
           </div>
         </section>
 
         <div className="flex flex-wrap items-center gap-sm border-y border-edge py-sm">
-          <span className="label">Invite link</span>
+          <span className="label">{t("d.invite")}</span>
           <span className="num min-w-0 flex-[1_1_220px] font-extrabold break-all">{link.replace(/^https?:\/\//, "")}</span>
           <button type="button" onClick={copy} className="btn btn--small">
             <CopyIcon size={16} />
-            {copied ? "Copied" : "Copy for the chat"}
+            {copied ? t("d.copied") : t("d.copy")}
           </button>
         </div>
 
@@ -110,58 +115,58 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
           <section aria-labelledby="gl" className="flex min-w-0 flex-[999_1_600px] flex-col gap-lg">
             <div className="flex flex-wrap items-baseline justify-between gap-md border-b-2 border-ink pb-sm">
               <h2 id="gl" className="text-2xl">
-                Guests
+                {t("d.guests")}
               </h2>
               <p className="font-bold text-ink-2">
-                {state.coming} coming, {state.contributors} chipped in, {state.quiet} quiet
+                {t("d.stat", { a: state.coming, b: state.contributors, c: state.quiet })}
               </p>
             </div>
             {state.guests.length === 0 && (
               <Note bg="var(--color-paper-2)" tilt={-0.5} className="flex flex-col gap-xs p-lg">
-                <span className="font-extrabold">No answers yet</span>
-                <span className="text-ink-2">Copy the invite link into the group chat or show the QR. Guests appear here as they answer.</span>
+                <span className="font-extrabold">{t("d.noneT")}</span>
+                <span className="text-ink-2">{t("d.noneX")}</span>
               </Note>
             )}
             <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-sm sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))]">
               {state.guests.map((g, i) => {
                 const [kind, label] = LOOK[g.status];
-                return <NameTag key={g.name} name={g.name} state={label} kind={kind} tilt={TILT[i % TILT.length]} />;
+                return <NameTag key={g.name} name={g.name} state={t(label)} kind={kind} tilt={TILT[i % TILT.length]} />;
               })}
             </div>
             <div className="flex flex-wrap gap-lg">
-              <Key swatch={SWATCH.paid}>Paid</Key>
-              <Key swatch={SWATCH.soft}>Coming, not paid</Key>
-              <Key swatch={SWATCH.no}>Can’t come</Key>
-              <Key swatch={SWATCH.open}>Opened, no answer</Key>
+              <Key swatch={SWATCH.paid}>{t("d.key.paid")}</Key>
+              <Key swatch={SWATCH.soft}>{t("d.key.soft")}</Key>
+              <Key swatch={SWATCH.no}>{t("d.key.no")}</Key>
+              <Key swatch={SWATCH.open}>{t("d.key.open")}</Key>
             </div>
           </section>
 
           <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-2xl">
             <section aria-labelledby="feed" className="flex flex-col gap-sm">
               <h2 id="feed" className="text-xl">
-                Latest
+                {t("d.latest")}
               </h2>
-              <table aria-label="Latest activity" className="border-collapse text-md">
+              <table aria-label={t("d.latestAria")} className="border-collapse text-md">
                 <tbody>
                   {state.feed.slice(0, 5).map((f) => (
                     <tr key={f.id} className="enter border-t border-edge">
-                      <td className="py-sm">{f.text}</td>
+                      <td className="py-sm">{feedText(t, f)}</td>
                       <td className="num text-right font-extrabold">{f.amountCents > 0 ? usdShort(f.amountCents) : ""}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="label">Guests never see each other’s amounts, only the total.</p>
+              <p className="label">{t("d.privacy")}</p>
             </section>
 
             {quiet.length > 0 && (
               <section aria-labelledby="nudge" className="flex flex-col gap-md">
                 <h2 id="nudge" className="text-xl">
-                  A nudge for {listNames(quiet)}
+                  {t("d.nudgeFor", { names: listNames(t, quiet) })}
                 </h2>
                 {editing ? (
                   <textarea
-                    aria-label="Reminder text"
+                    aria-label={t("d.reminderAria")}
                     className="input"
                     rows={5}
                     maxLength={280}
@@ -173,7 +178,7 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
                     {nudge}
                   </Note>
                 )}
-                <p className="label">Drafted by AI, {nudge.length} of 280 characters</p>
+                <p className="label">{t("d.drafted", { n: nudge.length })}</p>
                 <div className="flex flex-wrap gap-sm">
                   <button
                     type="button"
@@ -184,7 +189,7 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
                     }}
                     className="btn btn--primary"
                   >
-                    {sent ? `Sent to ${quiet.length} guests` : `Send to ${quiet.length} guests`}
+                    {sent ? t("d.sent", { n: quiet.length }) : t("d.send", { n: quiet.length })}
                   </button>
                   <button
                     type="button"
@@ -194,7 +199,7 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
                     }}
                     className="btn"
                   >
-                    {editing ? "Done" : "Edit"}
+                    {editing ? t("d.done") : t("d.edit")}
                   </button>
                 </div>
               </section>
