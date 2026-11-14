@@ -4,23 +4,18 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 import { CloseIcon, CopyIcon } from "@/components/icons";
+import { copyText } from "@/lib/copy-text";
 import { useI18n } from "@/lib/i18n";
 import { partyUrls, type PartyInfo } from "@/lib/party";
 
 // Окно сразу после создания (макет «E3 · Share»): ссылка, текст для группового чата, QR, превью для гостя.
 
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    // буфер обмена недоступен (http, старый браузер) — текст виден рядом, его можно выделить руками
-  }
-}
-
 export function ShareDialog({ party, link, open, onClose }: { party: PartyInfo; link: string; open: boolean; onClose: () => void }) {
   const { t, title, dayLong, md, lit } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
+  const linkRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState<"link" | "text" | null>(null);
+  const [failed, setFailed] = useState(false);
   const message = t("sd.message", {
     title: title(party),
     day: dayLong(party.date),
@@ -38,7 +33,14 @@ export function ShareDialog({ party, link, open, onClose }: { party: PartyInfo; 
   }, [open]);
 
   const copy = async (what: "link" | "text") => {
-    await copyText(what === "link" ? link : message);
+    const ok = await copyText(what === "link" ? link : message, ref.current);
+    setFailed(!ok);
+    if (!ok) {
+      // не вышло — выделяем ссылку, чтобы скопировать руками
+      linkRef.current?.focus();
+      linkRef.current?.select();
+      return;
+    }
     setCopied(what);
     setTimeout(() => setCopied(null), 1800);
   };
@@ -71,12 +73,17 @@ export function ShareDialog({ party, link, open, onClose }: { party: PartyInfo; 
               <div className="field">
                 <label htmlFor="share-link">{t("d.invite")}</label>
                 <div className="flex gap-xs">
-                  <input id="share-link" className="input font-extrabold" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+                  <input ref={linkRef} id="share-link" className="input font-extrabold" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
                   <button type="button" className="btn btn--primary shrink-0" onClick={() => copy("link")}>
                     <CopyIcon size={16} />
                     {copied === "link" ? t("d.copied") : t("sd.copy")}
                   </button>
                 </div>
+                {failed && (
+                  <p role="alert" className="text-sm font-bold text-error">
+                    {t("copy.fail")}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-sm border-t border-edge pt-lg">
                 <h2 className="text-xl">{t("sd.chatH")}</h2>

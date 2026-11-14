@@ -165,11 +165,12 @@ export function InviteView({
               {party.placeNote && <span className="font-bold text-ink-2">{lit(party.placeNote)}</span>}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-xs">
-            <a className="btn px-sm" href={calendarUrl(party, title(party))} target="_blank" rel="noopener noreferrer" tabIndex={skip}>
+          {/* одна кнопка в ряд: «Добавить в календарь» по-русски и по-казахски в половину ширины не влезает */}
+          <div className="flex flex-col gap-sm">
+            <a className="btn btn--block" href={calendarUrl(party, title(party))} target="_blank" rel="noopener noreferrer" tabIndex={skip}>
               {t("inv.calendar")}
             </a>
-            <a className="btn px-sm" href={directionsUrl(party.place)} target="_blank" rel="noopener noreferrer" tabIndex={skip}>
+            <a className="btn btn--block" href={directionsUrl(party.place)} target="_blank" rel="noopener noreferrer" tabIndex={skip}>
               {t("inv.directions")}
             </a>
           </div>

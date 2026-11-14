@@ -131,6 +131,7 @@ export const INVITE = area({
     "sd.preview": "Preview as a guest",
     "sd.design": "Change the design",
     "sd.toDash": "Go to the dashboard",
+    "copy.fail": "Couldn’t copy automatically. The link is selected: copy it by hand.",
 
     "de.saving": "Saving…",
     "de.unsaved": "Not saved yet",
@@ -283,6 +284,7 @@ export const INVITE = area({
     "sd.preview": "Посмотреть глазами гостя",
     "sd.design": "Сменить дизайн",
     "sd.toDash": "Перейти в кабинет",
+    "copy.fail": "Не получилось скопировать автоматически. Ссылка выделена: скопируйте её вручную.",
 
     "de.saving": "Сохраняем…",
     "de.unsaved": "Не сохранено",
@@ -433,6 +435,7 @@ export const INVITE = area({
     "sd.preview": "Қонақ ретінде көру",
     "sd.design": "Дизайнды өзгерту",
     "sd.toDash": "Кабинетке өту",
+    "copy.fail": "Автоматты түрде көшіру мүмкін болмады. Сілтеме белгіленді: оны қолмен көшіріңіз.",
 
     "de.saving": "Сақталуда…",
     "de.unsaved": "Сақталмаған",

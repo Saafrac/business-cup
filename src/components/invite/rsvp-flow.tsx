@@ -186,6 +186,7 @@ export function RsvpFlow({
           go(rsvp === "no" ? "chip" : "name");
         }}
         onRestart={restart}
+        onClose={onClose}
         short={short}
       />
     );
@@ -420,6 +421,7 @@ function Done({
   chipLater,
   onChip,
   onRestart,
+  onClose,
   short,
 }: {
   party: PartyInfo;
@@ -430,6 +432,8 @@ function Done({
   chipLater: boolean;
   onChip: () => void;
   onRestart: () => void;
+  /** Назад к приглашению: дата, место, подарок, альбом */
+  onClose: () => void;
   short: string;
 }) {
   const { t, title, dayLong } = useI18n();
@@ -439,7 +443,13 @@ function Done({
       {BURST.map(([l, top], i) => (
         <span key={i} aria-hidden="true" className="pixel confetti" style={confettiStyle(i, l, top, 45)} />
       ))}
-      <div className="relative flex flex-col items-center gap-md px-md pt-xl text-center">
+      <div className="relative px-md pt-sm">
+        <button type="button" onClick={onClose} className="-ml-xs flex min-h-11 items-center gap-2xs border-0 bg-transparent px-xs font-extrabold text-ink">
+          <ArrowLeftIcon size={20} />
+          {t("rf.backInvite")}
+        </button>
+      </div>
+      <div className="relative flex flex-col items-center gap-md px-md pt-md text-center">
         {/* eslint-disable-next-line @next/next/no-img-element -- SVG темы из public */}
         <img src={mascotSrc(party.theme)} alt="" className="h-[182px] w-[260px] object-contain" />
         <h1 className="max-w-[14ch] text-3xl">{coming ? t("rf.seeYou", { day: dayLong(party.date), name }) : t("rf.thanks", { name })}</h1>

@@ -7,6 +7,7 @@ import { PhotoViewer } from "@/components/album/photo-viewer";
 import { CopyIcon, ExternalIcon, TrashIcon } from "@/components/icons";
 import { AppHeader, Note } from "@/components/shell";
 import { SEED_ALT, albumHostLabel, type AlbumState } from "@/lib/album";
+import { copyText } from "@/lib/copy-text";
 import { useI18n } from "@/lib/i18n";
 import { partyUrls, type PartyInfo } from "@/lib/party";
 import { useOrigin } from "@/lib/use-demo";
@@ -52,11 +53,8 @@ export function AlbumManage({ party, initial }: { party: PartyInfo; initial: Alb
   };
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(albumLink);
-    } catch {
-      // буфер обмена недоступен по http — ссылка видна рядом
-    }
+    // по http буфер обмена закрыт — copyText копирует через скрытое поле; не вышло — ссылка видна рядом
+    if (!(await copyText(albumLink))) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };
@@ -148,7 +146,7 @@ export function AlbumManage({ party, initial }: { party: PartyInfo; initial: Alb
               <div className="self-center">
                 <Note bg="var(--color-card)" tilt={1} className="flex flex-col items-center gap-sm p-lg">
                   <QRCodeSVG value={albumLink} size={200} level="M" fgColor="#07051A" bgColor="#FFFEFF" title={t("am.qrTitle")} />
-                  <span className="text-sm font-extrabold break-all">{albumLink.replace(/^https?:\/\//, "")}</span>
+                  <span className="text-sm font-extrabold break-all">{albumLink}</span>
                 </Note>
               </div>
               <button type="button" onClick={copy} className="btn btn--block">

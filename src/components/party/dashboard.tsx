@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CopyIcon, QrIcon } from "@/components/icons";
 import { ShareDialog } from "@/components/party/share-dialog";
 import { AppHeader, Bar, Key, NameTag, Note, SWATCH, type TagKind } from "@/components/shell";
 import { TILT } from "@/lib/demo";
 import { noteLabel } from "@/components/invite/rsvp-flow";
+import { copyText } from "@/lib/copy-text";
 import { useI18n, type TFn } from "@/lib/i18n";
 import type { MessageKey } from "@/lib/i18n/dict";
 import { themeName } from "@/lib/invite-themes";
@@ -53,11 +54,15 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
     t("d.nudge", { title: title(party), day: dayShort(party.date), date: md(party.date), place: lit(party.place), gift: short });
   const link = `${origin}${urls.guest}`;
 
+  const [copyFailed, setCopyFailed] = useState(false);
+  const linkRef = useRef<HTMLAnchorElement>(null);
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      // буфер обмена недоступен (http, старый браузер) — ссылка видна рядом, её можно выделить руками
+    const ok = await copyText(link);
+    setCopyFailed(!ok);
+    if (!ok) {
+      // не вышло — выделяем ссылку, чтобы скопировать руками
+      if (linkRef.current) window.getSelection()?.selectAllChildren(linkRef.current);
+      return;
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
@@ -114,11 +119,19 @@ export function Dashboard({ party, initial }: { party: PartyInfo; initial: Party
 
         <div className="flex flex-wrap items-center gap-sm border-y border-edge py-sm">
           <span className="label">{t("d.invite")}</span>
-          <span className="num min-w-0 flex-[1_1_220px] font-extrabold break-all">{link.replace(/^https?:\/\//, "")}</span>
+          {/* полная ссылка с http://: без протокола мессенджеры не делают её кликабельной */}
+          <a ref={linkRef} href={link} target="_blank" rel="noopener noreferrer" className="num min-w-0 flex-[1_1_220px] font-extrabold break-all select-all">
+            {link}
+          </a>
           <button type="button" onClick={copy} className="btn btn--small">
             <CopyIcon size={16} />
             {copied ? t("d.copied") : t("d.copy")}
           </button>
+          {copyFailed && (
+            <p role="alert" className="basis-full text-sm font-bold text-error">
+              {t("copy.fail")}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-start gap-2xl">

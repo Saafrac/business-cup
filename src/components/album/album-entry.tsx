@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { UploadSheet } from "@/components/album/upload-sheet";
-import { CameraIcon, ExternalIcon } from "@/components/icons";
+import { CameraIcon, ChevronLeftIcon, ExternalIcon } from "@/components/icons";
 import { Note, PhoneColumn } from "@/components/shell";
 import { albumCover, albumHostLabel, type AlbumState } from "@/lib/album";
 import { LangSwitch, useI18n } from "@/lib/i18n";
@@ -20,13 +20,11 @@ export function AlbumEntry({ party, initial }: { party: PartyInfo; initial: Albu
   return (
     <PhoneColumn>
       <div className="flex items-center justify-between p-md">
-        <Link href={urls.guest} className="font-display text-lg font-semibold tracking-[-0.03em] text-ink no-underline hover:text-ink">
-          chip in
+        <Link href={urls.guest} className="-ml-xs flex min-h-11 items-center gap-2xs px-xs font-extrabold text-ink no-underline hover:text-accent">
+          <ChevronLeftIcon size={20} />
+          {t("rf.backInvite")}
         </Link>
-        <span className="flex items-center gap-xs">
-          <span className="text-sm font-bold text-ink-2">{t("al.title")}</span>
-          <LangSwitch />
-        </span>
+        <LangSwitch />
       </div>
 
       <div className="px-md">
