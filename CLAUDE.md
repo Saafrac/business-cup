@@ -10,22 +10,28 @@ Next.js 16 (App Router, Cache Components), React 19, TypeScript, Tailwind 4, Pos
 
 ## Что живое, что макет
 
+- **Живое: свои события.** Мастер `/party/new` создаёт событие (`POST /api/parties`, таблица `parties`, id — 8 случайных символов)
+  и открывает его дашборд `/party/<id>`. Всё открыто всем, без входа и секретных ссылок: список всех событий — `/parties`.
+  Страницы события грузят его на сервере (`src/lib/server/load.ts`, Suspense вокруг `params`), неизвестный id — 404.
+  Тексты собираются из события: `partyTitle`, `inviteHeadline`, `giftShort`, даты `mmdd`/`dayLong`/`time12` — `src/lib/party.ts`.
 - **Живое** (бэк + Postgres): страница гостя → Test payment / Venmo / RSVP → сумма растёт на QR-экране,
-  дашборде, «Спасибо», распределении. Опрос сервера раз в 1–2 с, не WebSocket.
+  дашборде, «Спасибо», распределении. Опрос сервера раз в 1–2 с, не WebSocket. Первое состояние приходит со страницы.
 - **Живое: фотоальбом события** — гость по ссылке `/p/[slug]/album` добавляет фото (ужимаются в браузере до 2048 px + превью 480 px),
   лента `/p/[slug]/album/photos` с полноэкранным просмотром; организатор `/party/[id]/album` задаёт ссылку на внешний альбом
   фотографа (только известные хостинги: Google Photos/Drive, Dropbox, iCloud…), удаляет фото. Фото — в Postgres (`album_photos`, bytea),
-  ссылка — `party_settings`. Действия организатора закрыты `DEMO_ADMIN_KEY` (заголовок `x-demo-key`), без ключа — открыты (локально).
-  12 демо-фото (SVG из макета) — `public/album-seed`, в базу не пишутся. Сброс демо очищает и альбом.
-- **Макет на демо-данных**: лендинг, вход, мастер создания события (выбор повода) + paywall, Group Wallet, Dream Fund.
-- Демо — один праздник `emma7k2q` («Emma turns 7», велосипед за $300). Старт с засева: $210, 14 из 25 семей.
+  ссылка — `party_settings`. Удаление фото и ссылка открыты всем, как и весь кабинет организатора.
+  12 демо-фото (SVG из макета) — `public/album-seed`, только у демо, в базу не пишутся. Сброс демо очищает и альбом.
+- **Макет на демо-данных**: лендинг, вход, идеи AI Dream Finder и paywall в мастере, Group Wallet, Dream Fund.
+- Демо — встроенное событие `emma7k2q` (`DEMO_PARTY`, в базу не пишется): засев $210, 14 из 25 гостей и 12 фото есть только у него.
+  У нового события гостей нет, пока кто-то не ответит.
 
 ## Где что
 
 | Путь | Что |
 |---|---|
-| `src/app/` | страницы: `/`, `/login`, `/party/new`, `/p/[slug]` (гость), `/p/[slug]/thanks`, `/party/[id]` (дашборд), `/party/[id]/qr` (экран для зала), `/party/[id]/payout`, `/group/[id]`, `/dream/[slug]` |
-| `src/app/api/` | `party/[id]/state` (GET состояние), `party/[id]/events` (POST взнос/RSVP), `demo/reset` (POST, заголовок `x-demo-key`), `health` (работающий git sha) |
+| `src/app/` | страницы: `/`, `/login`, `/parties` (все события), `/party/new`, `/p/[slug]` (гость), `/p/[slug]/thanks`, `/p/[slug]/album(/photos)`, `/party/[id]` (дашборд), `/party/[id]/qr` (экран для зала), `/party/[id]/payout`, `/party/[id]/album`, `/group/[id]`, `/dream/[slug]` |
+| `src/app/api/` | `parties` (GET список / POST создать), `party/[id]/state` (GET состояние), `party/[id]/events` (POST взнос/RSVP), `demo/reset` (POST, заголовок `x-demo-key`), `health` (работающий git sha) |
+| `src/lib/party.ts`, `src/lib/server/parties.ts`, `src/lib/server/load.ts` | событие: тип и форматирование; хранилище и валидация формы мастера; загрузка на страницах |
 | `src/components/` | экраны по папкам (`guest/`, `party/`, `group/`, `dream/`, `new-party/`, `landing/`), `shell.tsx` — общие куски (шапка, `Bar`, `NameTag`, `Note`, `PhoneColumn`), `paywall.tsx`, `icons.tsx` |
 | `src/lib/party-state.ts` | события → состояние события (гости, взносы), засев; общий для сервера и браузера |
 | `src/lib/server/` | `store.ts` (Postgres при `DATABASE_URL`, иначе память; колонка гостя в таблице по-прежнему `kid`, в коде — `guest`), `party-api.ts` (валидация, лимит частоты) |
